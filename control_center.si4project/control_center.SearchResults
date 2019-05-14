@@ -1,0 +1,43 @@
+---- DEVLOSE Matches (2 in 2 files) ----
+HeartBeatCounter in main_control.c (USER) : 				ConnStatus = DEVLOSE;
+main_control.h (USER) line 13 : #define DEVLOSE  2 //设备掉线
+---- ConnStatus Matches (5 in 1 files) ----
+main_control.c (USER) line 15 : u8 ConnStatus; //连接状态
+DeviceStatusInit in main_control.c (USER) : 	ConnStatus = DEVINIT;
+HeartBeatCounter in main_control.c (USER) : 	if(ConnStatus == DEVCONN)
+HeartBeatCounter in main_control.c (USER) : 				ConnStatus = DEVLOSE;
+ConnectHandler in main_control.c (USER) : 		ConnStatus = DEVCONN;
+---- ConnStatus Matches (5 in 1 files) ----
+main_control.c (USER) line 15 : u8 ConnStatus; //连接状态
+DeviceStatusInit in main_control.c (USER) : 	ConnStatus = DEVINIT;
+HeartBeatCounter in main_control.c (USER) : 	if(ConnStatus == DEVCONN)
+HeartBeatCounter in main_control.c (USER) : 				ConnStatus = DEVLOSE;
+ConnectHandler in main_control.c (USER) : 		ConnStatus = DEVCONN;
+---- SearchDevice Matches (17 in 3 files) ----
+main_control.c (USER) line 464 : u8 SearchDevice(u8 devid)
+SearchDevice in main_control.c (USER) : 	DEBUGMSG("SearchDevice fail");
+ReflashHeartBeat in main_control.c (USER) : 	if((i = SearchDevice(devid)) != 0xff)
+ConnectHandler in main_control.c (USER) : 	if(SearchDevice(dev->dev_id) == 0xff)
+ModeChangeHandler in main_control.c (USER) : 	if(SearchDevice(dev->dev_id) != 0xff)
+OrtateMotorControl in main_control.c (USER) : 	if(SearchDevice(dev->dev_id) != 0xff)
+MotorMoveControlHandler in main_control.c (USER) : 	if(SearchDevice(dev->dev_id) != 0xff)
+SpeedControlHandler in main_control.c (USER) : 	if(SearchDevice(dev->dev_id) != 0xff)
+main_control.h (USER) line 101 : u8 SearchDevice(u8 devid);
+temp.htm (Objects) line 536 : <BR>[Calls]<UL><LI><a href="#[6d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SearchDevice
+temp.htm (Objects) line 687 : <BR>[Calls]<UL><LI><a href="#[6d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SearchDevice
+temp.htm (Objects) line 696 : <BR>[Calls]<UL><LI><a href="#[6d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SearchDevice
+temp.htm (Objects) line 767 : <BR>[Calls]<UL><LI><a href="#[6d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SearchDevice
+temp.htm (Objects) line 888 : <BR>[Calls]<UL><LI><a href="#[6d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SearchDevice
+temp.htm (Objects) line 911 : <P><STRONG><a name="[6d]"></a>SearchDevice</STRONG> (Thumb, 36 bytes, Stack size 0 bytes, main_control.o(i.SearchDevice))
+temp.htm (Objects) line 923 : <BR>[Calls]<UL><LI><a href="#[6d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SearchDevice
+---- MOTORRUN Matches (1 in 1 files) ----
+main_control.h (USER) line 70 : 	MOTORRUN,
+---- pwr_status Matches (8 in 3 files) ----
+main_control.c (USER) line 13 : u8 pwr_status;  //停机开机管理变量
+DeviceStatusInit in main_control.c (USER) : 	pwr_status = BOOT_STOP;  //停机开机管理变量
+Control_Handler in main_control.c (USER) : 	if(pwr_status == BOOT_RUN)
+main_control.h (USER) line 37 : extern u8 pwr_status;
+SysTick_Handler in stm32f10x_it.c (USER) : 			pwr_status = BOOT_STOP;
+EXTI4_IRQHandler in stm32f10x_it.c (USER) : 			if(pwr_status == BOOT_STOP)
+EXTI4_IRQHandler in stm32f10x_it.c (USER) : 				pwr_status = BOOT_RUN;
+stm32f10x_it.c (USER) line 206 : 		pwr_status = BOOT_STOP;
