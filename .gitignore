@@ -131,3 +131,14 @@ main.si4project/cache/parse/CMSIS_startup_startup_stm32f10x_hd_vl.s.sisc
 main.si4project/cache/parse/CMSIS_startup_startup_stm32f10x_hd.s.sisc
 main.si4project/cache/parse/CMSIS_startup_startup_stm32f10x_cl.s.sisc
 Listings/temp.map
+temp.uvguix.rabook
+Objects/temp_Target 1.dep
+Objects/temp.htm
+Objects/temp.hex
+Objects/temp.build_log.htm
+Objects/temp.axf
+Objects/main_control.o
+Objects/main_control.crf
+Objects/main.o
+Objects/main.crf
+Listings/temp.map
