@@ -671,6 +671,11 @@ void ModeChangeHandler(CommandData* dev)
 	if(SearchDevice(dev->dev_id) != 0xff)
 	{
 		DeviceMode = dev->dev_cmd;
+		if(DeviceMode == INCH_MODE)
+		{
+			BeepIndTime = 1;
+			BEEP = 1;
+		}
 		MotorMoveTime = 0;
 		ReflashHeartBeat(dev->dev_id);
 	}
@@ -740,11 +745,11 @@ void OrtateMotorControl(CommandData* dev)
 			}
 			else
 			{	
-				if(BoardSt == NORMAL)
+/*				if(BoardSt == NORMAL)
 				{
 					BeepIndTime = 1;
 					BEEP = 1;
-				}
+				}  */
 
 				Ortate_Motor_Brate();
 				OrtateMotorLock = 0;
@@ -795,11 +800,11 @@ void MotorMoveControlHandler(CommandData* dev)
 			}
 			else if(dev->dev_cmd == STOP_MOVE)
 			{
-				if(BoardSt == NORMAL)
+/*				if(BoardSt == NORMAL)
 				{
 					BeepIndTime = 1;
 					BEEP = 1;
-				}
+				}*/
 
 				MotorMoveTime = 0;
 				MotorMoveStop();	
