@@ -45,6 +45,8 @@ float NowTemp;   //当前温度
 float NowCur;    //当前电流
 float NowVol;    //当前电压
 
+u16 StartTime;
+
 void WarningTimeCounter(void)
 {
 	if(pwr_status == BOOT_RUN)
@@ -61,6 +63,10 @@ void WarningTimeCounter(void)
 			BeepIndTime++;
 		if(OrtateMotorTime > 0)
 			OrtateMotorTime++;
+	}
+	else if(pwr_status == BOOT_INIT)
+	{
+			StartTime++;
 	}
 }
 
@@ -413,6 +419,7 @@ void MotorMoveCounter(void)
 **************************************/
 void DeviceStatusInit(void)
 {
+	StartTime = 0;
 	BeepIndTime = 0;
 	OrtateMotorLock = 0;
 	OrtateMotorTime = 0;
@@ -936,6 +943,52 @@ void Control_Handler(void)
 		ConnectCheck();
 		ADCHandler();
 		FaultHandler();
+	}
+	else if(pwr_status == BOOT_INIT)
+	{
+//		StartTime = 0;
+		RGBBLUE = 1;
+		RGBGREEN = 1;
+		RGBRED = 1;
+		if(StartTime <= STARTTIME)
+		{
+			LED1 = 1;
+			LED2 = 0;
+			LED3 = 0;
+			LED4 = 0;
+		}
+		else if(StartTime > STARTTIME && StartTime <= (STARTTIME * 2))
+		{
+			LED1 = 0;
+			LED2 = 1;
+			LED3 = 0;
+			LED4 = 0;
+		}
+		else if(StartTime > (STARTTIME * 2) && StartTime <= (STARTTIME * 3))
+		{
+			LED1 = 0;
+			LED2 = 0;
+			LED3 = 1;
+			LED4 = 0;
+		}
+		else if(StartTime > (STARTTIME * 3) && StartTime <= (STARTTIME * 4))
+		{
+			LED1 = 0;
+			LED2 = 0;
+			LED3 = 0;
+			LED4 = 1;
+		}
+		else
+		{
+			LED1 = 0;
+			LED2 = 0;
+			LED3 = 0;
+			LED4 = 0;
+			
+			pwr_status = BOOT_RUN;
+			StartTime = 0;
+			CAN_Send_Msg(NULL, 0, MAIN_BOARD,START_BOOT);
+		}
 	}
 	else
 	{

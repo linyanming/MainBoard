@@ -165,12 +165,12 @@ void EXTI9_5_IRQHandler(void)
 {
 	if(EXTI_GetITStatus(EXTI_Line6) != RESET)
 	{
-		if(REED_KEY == 0)
+		if(REED_KEY == 1)
 		{
 			BoardSt = MOTOR_FAULT;
 		}
 
-		if(REED_KEY == 1)
+		if(REED_KEY == 0)
 		{
 			if(BoardSt == MOTOR_FAULT)
 			{
@@ -215,8 +215,8 @@ void EXTI4_IRQHandler(void)
 					PWR_ClearFlag(PWR_FLAG_WU);
 				}
 				SYSCLKConfig_STOP();
-				pwr_status = BOOT_RUN;
-				CAN_Send_Msg(NULL, 0, MAIN_BOARD,START_BOOT);
+				pwr_status = BOOT_INIT;
+				
 //				DeviceStatusInit();
 			}
 			else

@@ -6,8 +6,9 @@
 #include "stm32f10x_tim.h"
 #include "config.h"
 
-#define BOOT_RUN    0  //开机
+#define BOOT_RUN    2  //开机
 #define BOOT_STOP   1  //停机
+#define BOOT_INIT   0  //初始化
 
 #define DEVINIT  0  //开机初始状态
 #define DEVLOSE  1 //设备掉线
@@ -41,11 +42,14 @@
 #define TEMPCHANGEVAL 0.05   //温度变化差值 单位：千欧
 #define CURCHANGEVAL  0.5    //电流变化差值 单位：A
 
-#define BEEPINDMAXTIME 200  //蜂鸣器指示时间500ms
+#define BEEPINDMAXTIME 200  //蜂鸣器指示时间200ms
 
 #define LIMIT_CURRENT_SPD SPEED4
 
 #define ORTATEMOTORTIME 2000 //一次最多转动两秒
+
+#define STARTTIME 200 //开机流水灯间隔
+
 typedef struct
 {
 	u8 dev_id;     //控制设备id
