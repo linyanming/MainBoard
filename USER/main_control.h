@@ -17,7 +17,7 @@
 #define STOP_TIME  2000  //长按关机时间  这里是2秒
 
 #define MAX_CON_DEVNUM 16
-#define MAX_HEART_TIME 12500 //心跳超时时间 12.5s
+#define MAX_HEART_TIME 6000 //心跳超时时间 7s
 
 #define MOTORMOVERUN 1
 #define MOTORMOVESTOP 0

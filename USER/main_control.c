@@ -171,7 +171,7 @@ void FaultHandler(void)
 				warnlv = CONNECTWARN;
 			break;
 		case NORMAL:
-			if(MoveMotorStatus != MOTORMOVESTOP || OrtateMotorStatus != ORTATE_STATUS_STOP)
+			if(MoveMotorStatus != MOTORMOVESTOP)
 			{
 				RGBBLUE = 1;
 				RGBGREEN = 0;
