@@ -24,22 +24,21 @@ void Key_Init(void)
 
 
 	GPIO_EXTILineConfig(GPIO_PortSourceGPIOB, GPIO_PinSource4);
-//	GPIO_EXTILineConfig(GPIO_PortSourceGPIOB, GPIO_PinSource2);
+	GPIO_EXTILineConfig(GPIO_PortSourceGPIOB, GPIO_PinSource2);
 	GPIO_EXTILineConfig(GPIO_PortSourceGPIOA, GPIO_PinSource6);
 
-//	EXTI_Str.EXTI_Line = EXTI_Line2 | EXTI_Line4 | EXTI_Line6;
-	EXTI_Str.EXTI_Line = EXTI_Line4 | EXTI_Line6;
+	EXTI_Str.EXTI_Line = EXTI_Line2 | EXTI_Line4 | EXTI_Line6;
 	EXTI_Str.EXTI_LineCmd = ENABLE;
 	EXTI_Str.EXTI_Mode = EXTI_Mode_Interrupt;
 	EXTI_Str.EXTI_Trigger = EXTI_Trigger_Rising_Falling;
 	EXTI_Init(&EXTI_Str);
-#if 0
+
 	NVIC_Str.NVIC_IRQChannel = EXTI2_IRQn;
 	NVIC_Str.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Str.NVIC_IRQChannelPreemptionPriority = 0;
 	NVIC_Str.NVIC_IRQChannelSubPriority = 2;
 	NVIC_Init(&NVIC_Str);
-#endif
+
 	NVIC_Str.NVIC_IRQChannel = EXTI4_IRQn;
 	NVIC_Str.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Str.NVIC_IRQChannelPreemptionPriority = 0;

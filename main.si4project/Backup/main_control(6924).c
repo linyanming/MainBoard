@@ -30,17 +30,10 @@ WarningLevel warnlv = NOWARN;   //报警等级
 
 u32 BigCurrenttime; //大电流报警时间
 u32 TempTime;   //温度报警时间
-u32 WpTime; //大功率报警时间
 
 u32 beepwarntime;  //蜂鸣器报警时间
-u32 beepwarnontime; //蜂鸣器报警持续时间
 u32 ledwarntime;	//LED报警时间
 u32 ledwarnmaxtime;  //led报警时间间隔
-
-u8 yelflashtimes;
-u8 redflashtimes;
-u8 yeltemptimes;
-u8 redtemptimes;
 
 u8 OrtateMotorLock; //转向电机锁 主要用于转270度停止
 u32 OrtateMotorTime; //一次最多转动270度
@@ -51,7 +44,6 @@ ConnectDev condev;  //连接设备列表
 float NowTemp;   //当前温度
 float NowCur;    //当前电流
 float NowVol;    //当前电压
-float NowWp;     //当前功率
 
 u16 StartTime;
 
@@ -71,10 +63,6 @@ void WarningTimeCounter(void)
 			BeepIndTime++;
 		if(OrtateMotorTime > 0)
 			OrtateMotorTime++;
-		if(beepwarnontime > 0)
-			beepwarnontime--;
-		if(WpTime > 0)
-			WpTime++;
 	}
 	else if(pwr_status == BOOT_INIT)
 	{
@@ -85,79 +73,6 @@ void WarningTimeCounter(void)
 void WarningHandler(void)
 {
 	if(BoardSt > NORMAL && BoardSt < CONNECT_FAULT)
-	{
-		if(beepwarnontime > 0)
-		{
-			if(beepwarntime > 0 && beepwarntime < BEEP_ONTIME)
-			{
-				BEEP = 1;
-			}
-			else if(beepwarntime >= BEEP_ONTIME && beepwarntime < (BEEP_ONTIME + BEEP_OFFTIME))
-			{
-				BEEP = 0;
-			}
-			else if(beepwarntime >= (BEEP_ONTIME + BEEP_OFFTIME) && beepwarntime < (BEEP_ONTIME * 2 + BEEP_OFFTIME))
-			{
-				BEEP = 1;
-			}
-			else if(beepwarntime >= (BEEP_ONTIME * 2 + BEEP_OFFTIME) && beepwarntime < (BEEP_ONTIME * 2 + BEEP_OFFTIME + BEEP_DELAY))
-			{
-				BEEP = 0;
-			}
-			else
-			{
-				beepwarntime = 1;
-			}
-		}
-
-		if(yelflashtimes > 0)
-		{
-			if(ledwarntime > 0 && ledwarntime < ledwarnmaxtime)
-			{
-				RGBGREEN = 1;
-				RGBRED = 1;
-				RGBBLUE = 0;
-			}
-			else if(ledwarntime >= ledwarnmaxtime && ledwarntime < (ledwarnmaxtime * 2))
-			{
-				RGBBLUE = 0;
-				RGBGREEN = 0;
-				RGBRED = 0;
-			}
-			else
-			{
-				ledwarntime = 1;
-				yelflashtimes--;
-			}
-		}
-		else if(redflashtimes > 0)
-		{
-			if(ledwarntime > 0 && ledwarntime < ledwarnmaxtime)
-			{
-				RGBGREEN = 0;
-				RGBRED = 1;
-				RGBBLUE = 0;
-			}
-			else if(ledwarntime >= ledwarnmaxtime && ledwarntime < (ledwarnmaxtime * 2))
-			{
-				RGBBLUE = 0;
-				RGBGREEN = 0;
-				RGBRED = 0;
-			}
-			else
-			{
-				ledwarntime = 1;
-				redflashtimes--;
-			}
-		}
-		else
-		{
-			yelflashtimes = yeltemptimes;
-			redflashtimes = redtemptimes;
-		}
-	}
-
-	if(BoardSt == CONNECT_FAULT || BoardSt == MOTOR_FAULT)
 	{
 		if(beepwarntime > 0 && beepwarntime < BEEP_ONTIME)
 		{
@@ -171,15 +86,7 @@ void WarningHandler(void)
 		{
 			BEEP = 1;
 		}
-		else if(beepwarntime >= (BEEP_ONTIME * 2 + BEEP_OFFTIME) && beepwarntime < (BEEP_ONTIME * 2 + BEEP_OFFTIME * 2))
-		{
-			BEEP = 0;
-		} 
-		else if(beepwarntime >= (BEEP_ONTIME * 2 + BEEP_OFFTIME * 2) && beepwarntime < (BEEP_ONTIME * 3 + BEEP_OFFTIME * 2))
-		{
-			BEEP = 1;
-		}
-		else if(beepwarntime >= (BEEP_ONTIME * 3 + BEEP_OFFTIME * 2) && beepwarntime < (BEEP_ONTIME * 3 + BEEP_OFFTIME * 2 + BEEP_DELAY))
+		else if(beepwarntime >= (BEEP_ONTIME * 2 + BEEP_OFFTIME) && beepwarntime < (BEEP_ONTIME * 2 + BEEP_OFFTIME + BEEP_DELAY))
 		{
 			BEEP = 0;
 		}
@@ -188,6 +95,27 @@ void WarningHandler(void)
 			beepwarntime = 1;
 		}
 
+		if(ledwarntime > 0 && ledwarntime < ledwarnmaxtime)
+		{
+			RGBGREEN = 1;
+			RGBRED = 1;
+			RGBBLUE = 0;
+		}
+		else if(ledwarntime >= ledwarnmaxtime && ledwarntime < (ledwarnmaxtime * 2))
+		{
+			RGBBLUE = 0;
+			RGBGREEN = 0;
+			RGBRED = 0;
+		}
+		else
+		{
+			ledwarntime = 1;
+		}
+	}
+
+	if(BoardSt == CONNECT_FAULT || BoardSt == MOTOR_FAULT)
+	{
+		BEEP = 1;
 		RGBRED = 1;
 		RGBBLUE = 0;
 		RGBGREEN = 0;
@@ -224,60 +152,14 @@ void FaultHandler(void)
 				}
 			}
 			break;
-		case WORKPOWER_FAULT:
-			if(warnlv < WORKPOWERWARN)
-			{
-				beepwarntime = 1;
-				ledwarntime = 1;
-			    ledwarnmaxtime = RGB_QUIK_FLASH;
-				yelflashtimes = 1;
-				redflashtimes = RGB_FLASH_TIMES - yelflashtimes;
-				yeltemptimes = yelflashtimes;
-				redtemptimes = redflashtimes;
-				if(Speed != SPEED0)
-				{
-					beepwarnontime = 60000;
-				}
-				warnlv = WORKPOWERWARN;
-			}
 		case VOL_FAULT:
-			if(warnlv < VOLWARN)
-			{
-				beepwarntime = 1;
-				ledwarntime = 1;
-			    ledwarnmaxtime = RGB_QUIK_FLASH;
-				yelflashtimes = 3;
-				redflashtimes = RGB_FLASH_TIMES - yelflashtimes;
-				yeltemptimes = yelflashtimes;
-				redtemptimes = redflashtimes;
-				beepwarnontime = 60000;
-				warnlv = VOLWARN;
-			}
 		case ORTATE_FAULT:
-			if(warnlv < ORTATEWARN)
-			{
-				beepwarntime = 1;
-				ledwarntime = 1;
-			    ledwarnmaxtime = RGB_QUIK_FLASH;
-				yelflashtimes = 4;
-				redflashtimes = RGB_FLASH_TIMES - yelflashtimes;
-				yeltemptimes = yelflashtimes;
-				redtemptimes = redflashtimes;
-				beepwarnontime = 10000;
-				warnlv = ORTATEWARN;
-			}
-			break;
 		case TEMP_FAULT:
 			if(warnlv < TEMPWARN)
 			{
 				beepwarntime = 1;
 				ledwarntime = 1;
-			    ledwarnmaxtime = RGB_QUIK_FLASH;
-				yelflashtimes = 2;
-				redflashtimes = RGB_FLASH_TIMES - yelflashtimes;
-				yeltemptimes = yelflashtimes;
-				redtemptimes = redflashtimes;
-				beepwarnontime = 60000;
+			    ledwarnmaxtime = RGB_NORMAL_FLASH;
 				warnlv = TEMPWARN;
 			}
 			break;
@@ -305,13 +187,7 @@ void FaultHandler(void)
 			beepwarntime = 0;
 			ledwarntime = 0;
 			BigCurrenttime = 0;
-			yelflashtimes = 0;
-			redflashtimes = 0;
-			yeltemptimes = yelflashtimes;
-			redtemptimes = redflashtimes;
-			beepwarnontime = 0;
 			TempTime = 0;
-			WpTime = 0;
 			warnlv = NOWARN;
 		default:
 			break;
@@ -325,14 +201,14 @@ void VoltageHandler(float vol)
 	if(fabs(vol - NowVol) >= VOLCHANGEVAL)
 	{
 		NowVol = vol;
-		if(vol > 14.5)
+		if(vol > 18)
 		{
 			if(BoardSt < VOL_FAULT)
 			{
 				BoardSt = VOL_FAULT;
 			}
 		}
-		else if(vol <= 14.5 && vol > 12)
+		else if(vol <= 18 && vol > 12)
 		{
 			st = VOL_FULL;
 			if(BoardSt == VOL_FAULT)
@@ -414,38 +290,6 @@ void VoltageHandler(float vol)
 	}
 }
 
-void WorkPowerHandler(float cur,float vol)
-{
-	float wp;
-	wp = cur * vol;
-	if(fabs(wp - NowWp) >= WPCHANGEVAL)
-	{
-		NowWp = wp;
-		if(wp > 600)
-		{
-			if(WpTime == 0)
-			{
-				WpTime = 1;
-			}
-
-			if(WpTime > 30000)
-			{
-				if(BoardSt < WORKPOWER_FAULT)
-				{
-					BoardSt = WORKPOWER_FAULT;
-				}
-			}
-		}
-		else
-		{
-			if(BoardSt == WORKPOWER_FAULT)
-			{
-				BoardSt = NORMAL;
-			}
-		}
-	}
-}
-
 void CurrentHandler(float cur)
 {
 	if(fabs(cur - NowCur) >= CURCHANGEVAL)
@@ -484,21 +328,29 @@ void TempHandler(float temp)
 	if(fabs(temp - NowTemp) >= TEMPCHANGEVAL)
 	{
 		NowTemp = temp;
-		if(temp <= TEMP80)
+		if(temp <= TEMP70)
 		{
-			if(TempTime == 0)
+			if(temp <= TEMP90)
 			{
-				TempTime = 1;
+				BoardSt = MOTOR_FAULT;
 			}
-
-			if(TempTime > 30000)
+			else
 			{
-				if(BoardSt < TEMP_FAULT)
+				if(TempTime == 0)
+				{
+					TempTime = 1;
+				}
+
+				if(TempTime > 10000)
 				{
 					BoardSt = TEMP_FAULT;
 				}
-			}
 
+				if(TempTime > 120000)
+				{
+					BoardSt = MOTOR_FAULT;
+				}
+			}
 		}
 		else
 		{
@@ -506,24 +358,6 @@ void TempHandler(float temp)
 			{
 				BoardSt = NORMAL;
 			}
-		}
-	}
-}
-
-void OrtateFaultCheck(void)
-{
-	if(nF == 0)
-	{
-		if(BoardSt < ORTATE_FAULT)
-		{
-			BoardSt = ORTATE_FAULT;
-		}
-	}
-	else
-	{
-		if(BoardSt == ORTATE_FAULT)
-		{
-			BoardSt = NORMAL;
 		}
 	}
 }
@@ -541,11 +375,8 @@ void ADCHandler(void)
 	temp = (val[2] * 3.3 / 4096) / (3.3 - (val[2] * 3.3 / 4096)) * 5.1; //这里算出来的是热敏电阻阻值 单位：千欧
 //	printf("vol = %f cur = %f temp = %f\r\n",vol,cur,temp);
 	VoltageHandler(vol);
-//	CurrentHandler(cur);
-	WorkPowerHandler(cur,vol);
-
+	CurrentHandler(cur);
 	TempHandler(temp);
-	OrtateFaultCheck();
 }
 
 /********************************
@@ -596,7 +427,6 @@ void DeviceStatusInit(void)
 	NowTemp = 0;
 	NowCur = 0;
 	NowVol = 0;
-	NowWp = 0;
 	MotorMoveTime = 0;
 	OrateMoveTime = 0;
 	BigCurrenttime = 0;
@@ -660,85 +490,37 @@ void MotorMoveSpeedSet(void)
 {
 	u8 spd;
 	spd = Speed;
+	if(BoardSt == CURRENT_FAULT70)
+	{
+		if(spd > LIMIT_CURRENT_SPD)
+			spd = LIMIT_CURRENT_SPD;
+	}
 	
 	switch(spd)
 	{
 		case SPEED0:
-			if(BoardSt == WORKPOWER_FAULT)
-			{
-				beepwarnontime = 0;
-			}
 			TIM_SetCompare2(TIM2, SPEED0_VAL);
 			break;
 		case SPEED1:
-			if(BoardSt == WORKPOWER_FAULT || BoardSt == TEMP_FAULT)
-			{
-				TIM_SetCompare2(TIM2, SPEED1_VAL/2);
-			}
-			else
-			{
-				TIM_SetCompare2(TIM2, SPEED1_VAL);
-			}
+			TIM_SetCompare2(TIM2, SPEED1_VAL);
 			break;
 		case SPEED2:
-			if(BoardSt == WORKPOWER_FAULT || BoardSt == TEMP_FAULT)
-			{
-				TIM_SetCompare2(TIM2, SPEED2_VAL/2);
-			}
-			else
-			{
-				TIM_SetCompare2(TIM2, SPEED2_VAL);
-			}
+			TIM_SetCompare2(TIM2, SPEED2_VAL);
 			break;
 		case SPEED3:
-			if(BoardSt == WORKPOWER_FAULT || BoardSt == TEMP_FAULT)
-			{
-				TIM_SetCompare2(TIM2, SPEED3_VAL/2);
-			}
-			else
-			{
-				TIM_SetCompare2(TIM2, SPEED3_VAL);
-			}
+			TIM_SetCompare2(TIM2, SPEED3_VAL);
 			break;
 		case SPEED4:
-			if(BoardSt == WORKPOWER_FAULT || BoardSt == TEMP_FAULT)
-			{
-				TIM_SetCompare2(TIM2, SPEED4_VAL/2);
-			}
-			else
-			{
-				TIM_SetCompare2(TIM2, SPEED4_VAL);
-			}
+			TIM_SetCompare2(TIM2, SPEED4_VAL);
 			break;
 		case SPEED5:
-			if(BoardSt == WORKPOWER_FAULT || BoardSt == TEMP_FAULT)
-			{
-				TIM_SetCompare2(TIM2, SPEED5_VAL/2);
-			}
-			else
-			{
-				TIM_SetCompare2(TIM2, SPEED5_VAL);
-			}
+			TIM_SetCompare2(TIM2, SPEED5_VAL);
 			break;
 		case SPEED6:
-			if(BoardSt == WORKPOWER_FAULT || BoardSt == TEMP_FAULT)
-			{
-				TIM_SetCompare2(TIM2, SPEED6_VAL/2);
-			}
-			else
-			{
-				TIM_SetCompare2(TIM2, SPEED6_VAL);
-			}
+			TIM_SetCompare2(TIM2, SPEED6_VAL);
 			break;
 		case SPEED7:
-			if(BoardSt == WORKPOWER_FAULT || BoardSt == TEMP_FAULT)
-			{
-				TIM_SetCompare2(TIM2, SPEED7_VAL/2);
-			}
-			else
-			{
-				TIM_SetCompare2(TIM2, SPEED7_VAL);
-			}
+			TIM_SetCompare2(TIM2, SPEED7_VAL);
 			break;
 		default:
 			break;

@@ -33,14 +33,18 @@
 #define RGB_NORMAL_FLASH 500
 #define RGB_QUIK_FLASH 250
 
+#define RGB_FLASH_TIMES 4 //最大闪烁次数
+
 #define MAX_BIGCURRENTTIME 60000 //大电流报警时间60s
 
 #define TEMP70  2.135 	//70度温度的电阻值
+#define TEMP80  1.586   //80度温度的电阻值
 #define TEMP90  1.236   //90度温度的电阻值
 
 #define VOLCHANGEVAL  0.3    //电压变化差值 单位：V
 #define TEMPCHANGEVAL 0.05   //温度变化差值 单位：千欧
 #define CURCHANGEVAL  0.5    //电流变化差值 单位：A
+#define WPCHANGEVAL   2      //功率变化差值 单位：W
 
 #define BEEPINDMAXTIME 200  //蜂鸣器指示时间200ms
 
@@ -76,12 +80,12 @@ typedef enum
 typedef enum
 {
 	NORMAL = 0,
-	MOTORRUN,
-	VOL_FAULT,
 	ORTATE_FAULT,
+	VOL_FAULT,
 	TEMP_FAULT,
 	CURRENT_FAULT60,
 	CURRENT_FAULT70,
+	WORKPOWER_FAULT,
 	CONNECT_FAULT,
 	MOTOR_FAULT,
 }BoardStatus;
@@ -89,11 +93,12 @@ typedef enum
 typedef enum
 {
 	NOWARN = 0,
-	VOLWARN,
 	ORTATEWARN,
+	VOLWARN,
 	TEMPWARN,
 	CURRENT60WARN,
 	CURRENT70WARN,
+	WORKPOWERWARN,
 	CONNECTWARN,
 	MOTORWARN,
 }WarningLevel;
@@ -128,6 +133,8 @@ void FaultHandler(void);
 void WarningTimeCounter(void);
 void WarningHandler(void);
 void ConnectCheck(void);
+void OrtateFaultCheck(void);
+void WorkPowerHandler(float cur,float vol);
 
 #endif
 
