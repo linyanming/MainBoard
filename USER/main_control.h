@@ -83,8 +83,8 @@ typedef enum
 	ORTATE_FAULT,
 	VOL_FAULT,
 	TEMP_FAULT,
-	CURRENT_FAULT60,
-	CURRENT_FAULT70,
+//	CURRENT_FAULT60,
+//	CURRENT_FAULT70,
 	WORKPOWER_FAULT,
 	CONNECT_FAULT,
 	MOTOR_FAULT,
@@ -96,16 +96,16 @@ typedef enum
 	ORTATEWARN,
 	VOLWARN,
 	TEMPWARN,
-	CURRENT60WARN,
-	CURRENT70WARN,
+//	CURRENT60WARN,
+//	CURRENT70WARN,
 	WORKPOWERWARN,
 	CONNECTWARN,
 	MOTORWARN,
 }WarningLevel;
 
-extern u8 pwr_status;
+extern __IO u8 pwr_status;
 extern CommandBuf rxbuf;
-extern u16 pwr_time;
+extern __IO u16 pwr_time;
 extern u8 Speed;
 extern BoardStatus BoardSt;
 

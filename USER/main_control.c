@@ -11,50 +11,50 @@
 #include "iwdg.h"
 #include "can.h"
 
-u8 pwr_status;  //停机开机管理变量
-u16 pwr_time;  //关机时间计数
+__IO u8 pwr_status;  //停机开机管理变量
+__IO u16 pwr_time;  //关机时间计数
 u8 ConnStatus; //连接状态
 u8 DeviceMode; //控制模式
 u8 MoveMotorStatus;  //前进电机状态
 //u8 OrateMotorStatus; //转向电机状态
-u32 MotorMoveTime;   //前进时间
-u32 OrateMoveTime;  //转向电机时间
+__IO u16 MotorMoveTime;   //前进时间
+__IO u16 OrateMoveTime;  //转向电机时间
 u8 Speed;      //前进电机速度
 
-u32 BeepIndTime;  //蜂鸣器指示电机状态切换时间
+__IO u32 BeepIndTime;  //蜂鸣器指示电机状态切换时间
 
 
 VolStatus BoradVol = VOL_NONE;  //主板电量
 BoardStatus BoardSt = NORMAL;   //主板状态
 WarningLevel warnlv = NOWARN;   //报警等级
 
-u32 BigCurrenttime; //大电流报警时间
-u32 TempTime;   //温度报警时间
-u32 WpTime; //大功率报警时间
+//u32 BigCurrenttime; //大电流报警时间
+__IO u16 TempTime;   //温度报警时间
+__IO u16 WpTime; //大功率报警时间
 
-u32 beepwarntime;  //蜂鸣器报警时间
-u32 beepwarnontime; //蜂鸣器报警持续时间
-u32 ledwarntime;	//LED报警时间
-u32 ledwarnmaxtime;  //led报警时间间隔
+__IO u16 beepwarntime;  //蜂鸣器报警时间
+__IO u32 beepwarnontime; //蜂鸣器报警持续时间
+__IO u16 ledwarntime;	//LED报警时间
+__IO u16 ledwarnmaxtime;  //led报警时间间隔
 
-u8 yelflashtimes;
-u8 redflashtimes;
-u8 yeltemptimes;
-u8 redtemptimes;
+__IO u8 yelflashtimes;
+__IO u8 redflashtimes;
+__IO u8 yeltemptimes;
+__IO u8 redtemptimes;
 
 u8 OrtateMotorLock; //转向电机锁 主要用于转270度停止
-u32 OrtateMotorTime; //一次最多转动270度
+__IO u16 OrtateMotorTime; //一次最多转动270度
 
 CommandBuf rxbuf;   //接收缓存
 ConnectDev condev;  //连接设备列表
 
 float NowTemp;   //当前温度
-float NowCur;    //当前电流
+//float NowCur;    //当前电流
 float NowVol;    //当前电压
 float NowWp;     //当前功率
 
-u16 StartTime;
-
+__IO u16 StartTime;
+__IO u32 SystemTime; //系统运行时间计数
 void WarningTimeCounter(void)
 {
 	if(pwr_status == BOOT_RUN)
@@ -63,8 +63,8 @@ void WarningTimeCounter(void)
 			beepwarntime++;
 		if(ledwarntime > 0)
 			ledwarntime++;
-		if(BigCurrenttime > 0)
-			BigCurrenttime++;
+//		if(BigCurrenttime > 0)
+//			BigCurrenttime++;
 		if(TempTime > 0)
 			TempTime++;
 		if(BeepIndTime > 0)
@@ -75,10 +75,11 @@ void WarningTimeCounter(void)
 			beepwarnontime--;
 		if(WpTime > 0)
 			WpTime++;
+		SystemTime++;
 	}
 	else if(pwr_status == BOOT_INIT)
 	{
-			StartTime++;
+		StartTime++;
 	}
 }
 
@@ -198,6 +199,7 @@ void FaultHandler(void)
 {
 	switch(BoardSt)
 	{
+#if 0
 		case CURRENT_FAULT60:
 			if(warnlv < CURRENT60WARN || warnlv == CURRENT70WARN)
 			{
@@ -224,6 +226,7 @@ void FaultHandler(void)
 				}
 			}
 			break;
+#endif
 		case WORKPOWER_FAULT:
 			if(warnlv < WORKPOWERWARN)
 			{
@@ -304,11 +307,11 @@ void FaultHandler(void)
 				BEEP = 0;
 			beepwarntime = 0;
 			ledwarntime = 0;
-			BigCurrenttime = 0;
+//			BigCurrenttime = 0;
 			yelflashtimes = 0;
 			redflashtimes = 0;
-			yeltemptimes = yelflashtimes;
-			redtemptimes = redflashtimes;
+//			yeltemptimes = yelflashtimes;
+//			redtemptimes = redflashtimes;
 			beepwarnontime = 0;
 			TempTime = 0;
 			WpTime = 0;
@@ -446,6 +449,7 @@ void WorkPowerHandler(float cur,float vol)
 	}
 }
 
+#if 0
 void CurrentHandler(float cur)
 {
 	if(fabs(cur - NowCur) >= CURCHANGEVAL)
@@ -478,6 +482,7 @@ void CurrentHandler(float cur)
 		}
 	}
 }
+#endif
 
 void TempHandler(float temp)
 {
@@ -534,17 +539,20 @@ void ADCHandler(void)
 	float vol;
 	float cur;
 	float temp;
-	val = Get_ADC_Value();
-//	printf("val = %d %d %d\r\n",val[0],val[1],val[2]);
-	cur = val[0] * 3.3 / 4096 / 20 * 1000 / 2; //工作电流
-	vol = val[1] * 3.3 / 4096 * 10;  //工作电压
-	temp = (val[2] * 3.3 / 4096) / (3.3 - (val[2] * 3.3 / 4096)) * 5.1; //这里算出来的是热敏电阻阻值 单位：千欧
-//	printf("vol = %f cur = %f temp = %f\r\n",vol,cur,temp);
-	VoltageHandler(vol);
-//	CurrentHandler(cur);
-	WorkPowerHandler(cur,vol);
+	if(SystemTime % 1000 == 0)
+	{
+		val = Get_ADC_Value();
+	//	printf("val = %d %d %d\r\n",val[0],val[1],val[2]);
+		cur = val[0] * 3.3 / 4096 / 20 * 1000 / 2; //工作电流
+		vol = val[1] * 3.3 / 4096 * 10;  //工作电压
+		temp = val[2] * 3.3 / 4096 / (3.3 - (val[2] * 3.3 / 4096)) * 5.1; //这里算出来的是热敏电阻阻值 单位：千欧
+	//	printf("vol = %f cur = %f temp = %f\r\n",vol,cur,temp);
+		VoltageHandler(vol);
+	//	CurrentHandler(cur);
+		WorkPowerHandler(cur,vol);
 
-	TempHandler(temp);
+		TempHandler(temp);
+	}
 	OrtateFaultCheck();
 }
 
@@ -588,18 +596,19 @@ void MotorMoveCounter(void)
 **************************************/
 void DeviceStatusInit(void)
 {
+	SystemTime = 0;
 	StartTime = 0;
 	BeepIndTime = 0;
 	OrtateMotorLock = 0;
 	OrtateMotorTime = 0;
 	Speed = 0;
 	NowTemp = 0;
-	NowCur = 0;
+//	NowCur = 0;
 	NowVol = 0;
 	NowWp = 0;
 	MotorMoveTime = 0;
 	OrateMoveTime = 0;
-	BigCurrenttime = 0;
+//	BigCurrenttime = 0;
 //	OrateMotorStatus = MOTORMOVESTOP;
 	pwr_status = BOOT_STOP;  //停机开机管理变量
 	pwr_time = 0; //关机时间计数
@@ -656,6 +665,7 @@ void MotorMoveStop(void)
 返回值：
 	无
 **************************************/
+#if 1
 void MotorMoveSpeedSet(void)
 {
 	u8 spd;
@@ -744,7 +754,44 @@ void MotorMoveSpeedSet(void)
 			break;
 	}
 }
+#else
+void MotorMoveSpeedSet(void)
+{
+	u8 spd;
+	spd = Speed;
+	
+	switch(spd)
+	{
+		case SPEED0:
 
+			TIM_SetCompare2(TIM2, SPEED0_VAL);
+			break;
+		case SPEED1:
+			TIM_SetCompare2(TIM2, SPEED1_VAL);
+			break;
+		case SPEED2:
+			TIM_SetCompare2(TIM2, SPEED2_VAL);
+			break;
+		case SPEED3:
+			TIM_SetCompare2(TIM2, SPEED3_VAL);
+			break;
+		case SPEED4:
+			TIM_SetCompare2(TIM2, SPEED4_VAL);
+			break;
+		case SPEED5:
+			TIM_SetCompare2(TIM2, SPEED5_VAL);
+			break;
+		case SPEED6:
+			TIM_SetCompare2(TIM2, SPEED6_VAL);
+			break;
+		case SPEED7:
+			TIM_SetCompare2(TIM2, SPEED7_VAL);
+			break;
+		default:
+			break;
+	}
+}
+#endif
 
 /********************************
 心跳计数
@@ -1001,7 +1048,7 @@ void MotorMoveControlHandler(CommandData* dev)
 {
 	if(SearchDevice(dev->dev_id) != 0xff)
 	{
-		if(BoardSt <= CURRENT_FAULT70)
+		if(BoardSt <= WORKPOWER_FAULT)
 		{
 			if(dev->dev_cmd == START_MOVE)
 			{
@@ -1124,13 +1171,14 @@ void Control_Handler(void)
 
 			rxbuf.Rxflag = 0;
 		}
-		
+
+#if 0		
 		if(BigCurrenttime > MAX_BIGCURRENTTIME)
 		{
 			BoardSt = MOTOR_FAULT;
 //			BigCurrenttime = 0;
 		}
-
+#endif
 		if(MotorMoveTime > MAX_MOVE_TIME)
 		{
 			MotorMoveStop();
@@ -1210,13 +1258,18 @@ void Control_Handler(void)
 	}
 	else
 	{
+		SystemTime = 0;
 		MotorMoveStop();
 		Ortate_Motor_Brate();
 		BoardSt = NORMAL;
 		warnlv = NOWARN;
 		NowVol = 0;
-		NowCur = 0;
+//		NowCur = 0;
 		NowTemp = 0;
+		NowWp = 0;
+		beepwarnontime = 0;
+		yelflashtimes = 0;
+		redflashtimes = 0;
 		MotorMoveTime = 0;
 		OrtateMotorLock = 0;
 		OrtateMotorTime = 0;
