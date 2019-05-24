@@ -67,7 +67,9 @@ int main(void)
 		while(1);
 	}
 //	Systick_Init(72);
+#ifdef USART_DEBUG
 	Usart1_Init(115200);
+#endif
 	Led_Init();
 	Motor_Pwm_Init();
 	Key_Init();
