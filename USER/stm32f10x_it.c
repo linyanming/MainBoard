@@ -257,6 +257,7 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
 	}
 }
 
+#if 0
 void CAN1_SCE_IRQHandler(void)
 {
 	
@@ -273,7 +274,7 @@ void CAN1_SCE_IRQHandler(void)
 		CAN_ClearITPendingBit(CAN1, CAN_IT_ERR);
 	}
 }
-
+#endif
 /**
   * @brief  This function handles PPP interrupt request.
   * @param  None

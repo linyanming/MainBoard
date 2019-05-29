@@ -42,6 +42,7 @@ __IO u8 redflashtimes;
 __IO u8 yeltemptimes;
 __IO u8 redtemptimes;
 
+u8 ControlDevice;  //当前控制转向电机的设备
 u8 OrtateMotorLock; //转向电机锁 主要用于转270度停止
 __IO u16 OrtateMotorTime; //一次最多转动270度
 
@@ -85,7 +86,7 @@ void WarningTimeCounter(void)
 
 void WarningHandler(void)
 {
-	if(BoardSt > NORMAL && BoardSt < CONNECT_FAULT)
+	if(BoardSt >= VOL_FAULT && BoardSt <= TEMP_FAULT)
 	{
 		if(beepwarnontime > 0)
 		{
@@ -155,6 +156,80 @@ void WarningHandler(void)
 		{
 			yelflashtimes = yeltemptimes;
 			redflashtimes = redtemptimes;
+		}
+	}
+
+	if(BoardSt == ORTATE_FAULT || BoardSt == WORKPOWER_FAULT)
+	{
+		if(beepwarnontime > 0)
+		{
+			if(beepwarntime > 0 && beepwarntime < BEEP_ONTIME)
+			{
+				BEEP = 1;
+			}
+			else if(beepwarntime >= BEEP_ONTIME && beepwarntime < (BEEP_ONTIME + BEEP_OFFTIME))
+			{
+				BEEP = 0;
+			}
+			else if(beepwarntime >= (BEEP_ONTIME + BEEP_OFFTIME) && beepwarntime < (BEEP_ONTIME * 2 + BEEP_OFFTIME))
+			{
+				BEEP = 1;
+			}
+			else if(beepwarntime >= (BEEP_ONTIME * 2 + BEEP_OFFTIME) && beepwarntime < (BEEP_ONTIME * 2 + BEEP_OFFTIME + BEEP_DELAY))
+			{
+				BEEP = 0;
+			}
+			else
+			{
+				beepwarntime = 1;
+			}
+		
+
+			if(yelflashtimes > 0)
+			{
+				if(ledwarntime > 0 && ledwarntime < ledwarnmaxtime)
+				{
+					RGBGREEN = 1;
+					RGBRED = 1;
+					RGBBLUE = 0;
+				}
+				else if(ledwarntime >= ledwarnmaxtime && ledwarntime < (ledwarnmaxtime * 2))
+				{
+					RGBBLUE = 0;
+					RGBGREEN = 0;
+					RGBRED = 0;
+				}
+				else
+				{
+					ledwarntime = 1;
+					yelflashtimes--;
+				}
+			}
+			else if(redflashtimes > 0)
+			{
+				if(ledwarntime > 0 && ledwarntime < ledwarnmaxtime)
+				{
+					RGBGREEN = 0;
+					RGBRED = 1;
+					RGBBLUE = 0;
+				}
+				else if(ledwarntime >= ledwarnmaxtime && ledwarntime < (ledwarnmaxtime * 2))
+				{
+					RGBBLUE = 0;
+					RGBGREEN = 0;
+					RGBRED = 0;
+				}
+				else
+				{
+					ledwarntime = 1;
+					redflashtimes--;
+				}
+			}
+			else
+			{
+				yelflashtimes = yeltemptimes;
+				redflashtimes = redtemptimes;
+			}
 		}
 	}
 
@@ -244,6 +319,7 @@ void FaultHandler(void)
 				warnlv = WORKPOWERWARN;
 			}
 		case VOL_FAULT:
+		case HIGH_VOL_FAULT:
 			if(warnlv < VOLWARN)
 			{
 				beepwarntime = 1;
@@ -330,15 +406,25 @@ void VoltageHandler(float vol)
 		NowVol = vol;
 		if(vol > 14.5)
 		{
-			if(BoardSt < VOL_FAULT)
+			if(vol >= 18)
 			{
-				BoardSt = VOL_FAULT;
+				if(BoardSt < HIGH_VOL_FAULT)
+				{
+					BoardSt = HIGH_VOL_FAULT;
+				}
+			}
+			else
+			{
+				if(BoardSt <= HIGH_VOL_FAULT)
+				{
+					BoardSt = VOL_FAULT;
+				}
 			}
 		}
 		else if(vol <= 14.5 && vol > 12)
 		{
 			st = VOL_FULL;
-			if(BoardSt == VOL_FAULT)
+			if(BoardSt == VOL_FAULT || BoardSt == HIGH_VOL_FAULT)
 			{
 				BoardSt = NORMAL;
 			}
@@ -354,7 +440,7 @@ void VoltageHandler(float vol)
 		else if(vol <= 12 && vol > 11)
 		{
 			st = VOL_LEVEL3;
-			if(BoardSt == VOL_FAULT)
+			if(BoardSt == VOL_FAULT || BoardSt == HIGH_VOL_FAULT)
 			{
 				BoardSt = NORMAL;
 			}
@@ -371,7 +457,7 @@ void VoltageHandler(float vol)
 		else if(vol <= 11 && vol > 10)
 		{
 			st = VOL_LEVEL2;
-			if(BoardSt == VOL_FAULT)
+			if(BoardSt == VOL_FAULT || BoardSt == HIGH_VOL_FAULT)
 			{
 				BoardSt = NORMAL;
 			}
@@ -388,7 +474,7 @@ void VoltageHandler(float vol)
 		else if(vol <= 10 && vol > 9)
 		{
 			st = VOL_LEVEL1;
-			if(BoardSt == VOL_FAULT)
+			if(BoardSt == VOL_FAULT || BoardSt == HIGH_VOL_FAULT)
 			{
 				BoardSt = NORMAL;
 			}
@@ -421,6 +507,19 @@ void WorkPowerHandler(float cur,float vol)
 {
 	float wp;
 	wp = cur * vol;
+	
+	if(MoveMotorStatus == MOTORMOVESTOP && OrtateMotorStatus == ORTATE_STATUS_STOP)
+	{
+		if(fabs(wp - NowWp) >= WPCHANGEVAL)
+		{
+			if(wp >= 50)
+			{
+				BoardSt = MOTOR_FAULT;
+				return;
+			}
+		}
+	}
+	
 	if(fabs(wp - NowWp) >= WPCHANGEVAL)
 	{
 		NowWp = wp;
@@ -433,15 +532,20 @@ void WorkPowerHandler(float cur,float vol)
 
 			if(WpTime > 30000)
 			{
-				if(BoardSt < WORKPOWER_FAULT)
+				if(BoardSt <= WORKPOWER_FAULT)
 				{
 					BoardSt = WORKPOWER_FAULT;
+					if(Speed != SPEED0)
+					{
+						beepwarnontime = 60000;
+					}
+
 				}
 			}
 		}
 		else
 		{
-			if(BoardSt == WORKPOWER_FAULT)
+			if(BoardSt == WORKPOWER_FAULT && beepwarnontime == 0)
 			{
 				BoardSt = NORMAL;
 			}
@@ -519,14 +623,15 @@ void OrtateFaultCheck(void)
 {
 	if(nF == 0)
 	{
-		if(BoardSt < ORTATE_FAULT)
+		if(BoardSt <= ORTATE_FAULT)
 		{
 			BoardSt = ORTATE_FAULT;
+			beepwarnontime = 10000;
 		}
 	}
 	else
 	{
-		if(BoardSt == ORTATE_FAULT)
+		if(BoardSt == ORTATE_FAULT && beepwarnontime == 0)
 		{
 			BoardSt = NORMAL;
 		}
@@ -542,11 +647,11 @@ void ADCHandler(void)
 	if(SystemTime % 1000 == 0)
 	{
 		val = Get_ADC_Value();
-	//	printf("val = %d %d %d\r\n",val[0],val[1],val[2]);
+//		printf("val = %d %d %d\r\n",val[0],val[1],val[2]);
 		cur = val[0] * 3.3 / 4096 / 20 * 1000 / 2; //工作电流
 		vol = val[1] * 3.3 / 4096 * 10;  //工作电压
 		temp = val[2] * 3.3 / 4096 / (3.3 - (val[2] * 3.3 / 4096)) * 5.1; //这里算出来的是热敏电阻阻值 单位：千欧
-	//	printf("vol = %f cur = %f temp = %f\r\n",vol,cur,temp);
+//		printf("vol = %f cur = %f temp = %f\r\n",vol,cur,temp);
 		VoltageHandler(vol);
 	//	CurrentHandler(cur);
 		WorkPowerHandler(cur,vol);
@@ -596,6 +701,7 @@ void MotorMoveCounter(void)
 **************************************/
 void DeviceStatusInit(void)
 {
+	ControlDevice = MAIN_BOARD;
 	SystemTime = 0;
 	StartTime = 0;
 	BeepIndTime = 0;
@@ -635,6 +741,10 @@ void MotorMoveStart(void)
 	TIM2->CCER |= 1 << 4;
 	MotorMoveSpeedSet();
 	MoveMotorStatus = MOTORMOVERUN;
+	if(DeviceMode == INCH_MODE)   //在点动模式下反馈电机状态给脚控板
+	{
+		CAN_Send_Msg(&Speed, 1, MAIN_BOARD, START_MOVE);
+	}
 }
 
 /********************************
@@ -652,6 +762,10 @@ void MotorMoveStop(void)
 {
 	TIM2->CCER &=  0xffef;
 	MoveMotorStatus = MOTORMOVESTOP;
+	if(DeviceMode == INCH_MODE) //在点动模式下反馈电机状态给脚控板
+	{
+		CAN_Send_Msg(NULL, 0, MAIN_BOARD, STOP_MOVE);
+	}
 }
 
 /********************************
@@ -968,51 +1082,59 @@ void OrtateMotorControl(CommandData* dev)
 {
 	if(SearchDevice(dev->dev_id) != 0xff)
 	{
-		if(BoardSt < CONNECT_FAULT)
+		if(BoardSt < CONNECT_FAULT && BoardSt != ORTATE_FAULT)
 		{
 			DEBUGMSG("OrtateMotorControl");
 			
 			if(dev->dev_cmd == LEFT_TURN)
 			{
-				if(OrtateMotorLock == 0)
+				if(ControlDevice == MAIN_BOARD || ControlDevice == dev->dev_id)
 				{
-					if(OrtateMotorStatus == ORTATE_STATUS_LEFT)
+					if(OrtateMotorLock == 0)
 					{
-						OrateMoveTime = 1;
-					}
-					else if(OrtateMotorStatus == ORTATE_STATUS_STOP)
-					{
-						if(BoardSt == NORMAL)
+						if(OrtateMotorStatus == ORTATE_STATUS_LEFT)
 						{
-							BeepIndTime = 1;
-							BEEP = 1;
+							OrateMoveTime = 1;
 						}
-						Ortate_Motor_Left();
-						OrateMoveTime = 1;
-						OrtateMotorTime = 1;
-					}
+						else if(OrtateMotorStatus == ORTATE_STATUS_STOP)
+						{
+							if(BoardSt == NORMAL)
+							{
+								BeepIndTime = 1;
+								BEEP = 1;
+							}
+							Ortate_Motor_Left();
+							OrateMoveTime = 1;
+							OrtateMotorTime = 1;
+						}
+					}
+					ControlDevice = dev->dev_id;
 				}
 			}
 			else if(dev->dev_cmd == RIGHT_TURN)
 			{
-				if(OrtateMotorLock == 0)
+				if(ControlDevice == MAIN_BOARD || ControlDevice == dev->dev_id)
 				{
-					if(OrtateMotorStatus == ORTATE_STATUS_RIGHT)
+					if(OrtateMotorLock == 0)
 					{
-						OrateMoveTime = 1;
-					}
-					else if(OrtateMotorStatus == ORTATE_STATUS_STOP)
-					{
-						if(BoardSt == NORMAL)
+						if(OrtateMotorStatus == ORTATE_STATUS_RIGHT)
 						{
-							BeepIndTime = 1;
-							BEEP = 1;
+							OrateMoveTime = 1;
 						}
+						else if(OrtateMotorStatus == ORTATE_STATUS_STOP)
+						{
+							if(BoardSt == NORMAL)
+							{
+								BeepIndTime = 1;
+								BEEP = 1;
+							}
 
-						Ortate_Motor_Right();
-						OrateMoveTime = 1;
-						OrtateMotorTime = 1;
-					}
+							Ortate_Motor_Right();
+							OrateMoveTime = 1;
+							OrtateMotorTime = 1;
+						}
+					}
+					ControlDevice = dev->dev_id;
 				}
 			}
 			else
@@ -1022,11 +1144,14 @@ void OrtateMotorControl(CommandData* dev)
 					BeepIndTime = 1;
 					BEEP = 1;
 				}  */
-
-				Ortate_Motor_Brate();
-				OrtateMotorLock = 0;
-				OrtateMotorTime = 0;
-				OrateMoveTime = 0;
+//				if(OrtateMotorStatus != ORTATE_STATUS_STOP)
+//				{
+					Ortate_Motor_Brate();
+					OrtateMotorLock = 0;
+					OrtateMotorTime = 0;
+					OrateMoveTime = 0;
+					ControlDevice = MAIN_BOARD;
+//				}
 			}
 			ReflashHeartBeat(dev->dev_id);
 		}
@@ -1048,7 +1173,7 @@ void MotorMoveControlHandler(CommandData* dev)
 {
 	if(SearchDevice(dev->dev_id) != 0xff)
 	{
-		if(BoardSt <= WORKPOWER_FAULT)
+		if(BoardSt <= WORKPOWER_FAULT && BoardSt != HIGH_VOL_FAULT && BoardSt != ORTATE_FAULT)
 		{
 			if(dev->dev_cmd == START_MOVE)
 			{
@@ -1197,6 +1322,7 @@ void Control_Handler(void)
 //			OrtateMotorLock = 0;
 			OrateMoveTime = 0;
 			OrtateMotorTime = 0;
+			ControlDevice = MAIN_BOARD;
 		}
 
 		if(OrtateMotorTime > ORTATEMOTORTIME)
@@ -1259,7 +1385,8 @@ void Control_Handler(void)
 	else
 	{
 		SystemTime = 0;
-		MotorMoveStop();
+		TIM2->CCER &=  0xffef;
+		MoveMotorStatus = MOTORMOVESTOP;
 		Ortate_Motor_Brate();
 		BoardSt = NORMAL;
 		warnlv = NOWARN;

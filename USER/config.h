@@ -44,10 +44,10 @@ typedef enum
 	RETREAT = 5,      //后退
 	STOP_MOVE = 6,    //停止移动
 	SPEED_CNTR = 7,   //调速
-	INCH_MODE = 8,    //点动模式
-	LINK_MODE = 9,    //联动模式
-	CONNECT = 10,     //连接命令
-	CONNECT_ACK = 11, //连接应答
+	CONNECT = 8,	  //连接命令
+	CONNECT_ACK = 9, //连接应答
+	INCH_MODE = 10,    //点动模式
+	LINK_MODE = 11,    //联动模式
 	START_BOOT = 12,  //开机
 	CLOSE_BOOT = 13,  //关机
 }Device_CMD;
