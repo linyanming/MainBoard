@@ -49,12 +49,21 @@
 #define BEEPINDMAXTIME 200  //蜂鸣器指示时间200ms
 
 #define PAIR_MAX_TIME 10000  //配对最大时间10S
+#define KEYPAIRTOUCH 2000 //按键按下配对时间2S
 
 #define LIMIT_CURRENT_SPD SPEED4
 
 #define ORTATEMOTORTIME 2000 //一次最多转动两秒
 
 #define STARTTIME 200 //开机流水灯间隔
+
+//电池电压
+#define VOLTAGE0  9
+#define VOLTAGE1  10
+#define VOLTAGE2  11
+#define VOLTAGE3  12
+#define VOLTAGE4 14.5
+#define VOLTAGEMAX 18
 
 typedef struct
 {

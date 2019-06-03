@@ -445,9 +445,9 @@ void VoltageHandler(float vol)
 	if(fabs(vol - NowVol) >= VOLCHANGEVAL)
 	{
 		NowVol = vol;
-		if(vol > 14.5)
+		if(vol > VOLTAGE4)
 		{
-			if(vol >= 18)
+			if(vol >= VOLTAGEMAX)
 			{
 				if(BoardSt < HIGH_VOL_FAULT)
 				{
@@ -462,7 +462,7 @@ void VoltageHandler(float vol)
 				}
 			}
 		}
-		else if(vol <= 14.5 && vol > 12)
+		else if(vol <= VOLTAGE4 && vol > VOLTAGE3)
 		{
 			st = VOL_FULL;
 			if(BoardSt == VOL_FAULT || BoardSt == HIGH_VOL_FAULT)
@@ -478,7 +478,7 @@ void VoltageHandler(float vol)
 				BoradVol = st;
 			}
 		}
-		else if(vol <= 12 && vol > 11)
+		else if(vol <= VOLTAGE3 && vol > VOLTAGE2)
 		{
 			st = VOL_LEVEL3;
 			if(BoardSt == VOL_FAULT || BoardSt == HIGH_VOL_FAULT)
@@ -495,7 +495,7 @@ void VoltageHandler(float vol)
 			}
 		
 		}
-		else if(vol <= 11 && vol > 10)
+		else if(vol <= VOLTAGE2 && vol > VOLTAGE1)
 		{
 			st = VOL_LEVEL2;
 			if(BoardSt == VOL_FAULT || BoardSt == HIGH_VOL_FAULT)
@@ -512,7 +512,7 @@ void VoltageHandler(float vol)
 			}
 		
 		}
-		else if(vol <= 10 && vol > 9)
+		else if(vol <= VOLTAGE1 && vol > VOLTAGE0)
 		{
 			st = VOL_LEVEL1;
 			if(BoardSt == VOL_FAULT || BoardSt == HIGH_VOL_FAULT)
@@ -1341,7 +1341,7 @@ void KeyHandler(void)
 		}
 		else
 		{
-			if(SystemTime - keypairtime > 2000)
+			if(SystemTime - keypairtime > KEYPAIRTOUCH)
 			{
 				if(BoardSt == NORMAL && OrtateMotorStatus == ORTATE_STATUS_STOP && MoveMotorStatus == MOTORMOVESTOP)
 				{
