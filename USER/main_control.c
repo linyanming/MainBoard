@@ -42,6 +42,9 @@ __IO u8 redflashtimes;
 __IO u8 yeltemptimes;
 __IO u8 redtemptimes;
 
+__IO u32 keypairtime; //配对按键按下时间
+__IO u32 pairtime;    //配对持续时间
+
 u8 ControlDevice;  //当前控制转向电机的设备
 u8 OrtateMotorLock; //转向电机锁 主要用于转270度停止
 __IO u16 OrtateMotorTime; //一次最多转动270度
@@ -86,6 +89,26 @@ void WarningTimeCounter(void)
 
 void WarningHandler(void)
 {
+	if(BoardSt == ST_PAIR || BoardSt == ST_CANCELPAIR)
+	{
+		if(ledwarntime > 0 && ledwarntime < ledwarnmaxtime)
+		{
+			RGBGREEN = 1;
+			RGBRED = 0;
+			RGBBLUE = 0;
+		}
+		else if(ledwarntime >= ledwarnmaxtime && ledwarntime < (ledwarnmaxtime * 2))
+		{
+			RGBBLUE = 0;
+			RGBGREEN = 0;
+			RGBRED = 0;
+		}
+		else
+		{
+			ledwarntime = 1;
+		}
+	}
+	
 	if(BoardSt >= VOL_FAULT && BoardSt <= TEMP_FAULT)
 	{
 		if(beepwarnontime > 0)
@@ -302,6 +325,22 @@ void FaultHandler(void)
 			}
 			break;
 #endif
+		case PAIRING:
+			if(warnlv < PAIRWARN)
+			{
+				ledwarntime = 1;
+				ledwarnmaxtime = RGB_QUIK_FLASH;
+				warnlv = PAIRWARN;
+			}
+			break;
+		case CANCEL_PAIR:
+			if(warnlv < CANCELPAIRWARN)
+			{
+				ledwarntime = 1;
+				ledwarnmaxtime = RGB_NORMAL_FLASH;
+				warnlv = PAIRWARN;
+			}
+			break;
 		case WORKPOWER_FAULT:
 			if(warnlv < WORKPOWERWARN)
 			{
@@ -318,6 +357,7 @@ void FaultHandler(void)
 				}
 				warnlv = WORKPOWERWARN;
 			}
+			break;
 		case VOL_FAULT:
 		case HIGH_VOL_FAULT:
 			if(warnlv < VOLWARN)
@@ -332,6 +372,7 @@ void FaultHandler(void)
 				beepwarnontime = 60000;
 				warnlv = VOLWARN;
 			}
+			break;
 		case ORTATE_FAULT:
 			if(warnlv < ORTATEWARN)
 			{
@@ -702,6 +743,8 @@ void MotorMoveCounter(void)
 void DeviceStatusInit(void)
 {
 	ControlDevice = MAIN_BOARD;
+	keypairtime = 0;
+	pairtime = 0;
 	SystemTime = 0;
 	StartTime = 0;
 	BeepIndTime = 0;
@@ -1059,6 +1102,7 @@ void ModeChangeHandler(CommandData* dev)
 		DeviceMode = dev->dev_cmd;
 		if(DeviceMode == INCH_MODE)
 		{
+			MotorMoveStop();
 			BeepIndTime = 1;
 			BEEP = 1;
 		}
@@ -1245,6 +1289,84 @@ void SpeedControlHandler(CommandData* dev)
 	}
 }
 
+//退出配对状态
+void QuitPair(void)
+{
+	if(BoardSt == ST_PAIR || BoardSt == ST_CANCELPAIR)
+	{
+		BoardSt = NORMAL;
+		pairtime = 0;
+	}
+}
+
+/************************************************
+配对应答处理函数
+功能：
+	配对应答处理
+	
+参数：
+	无
+
+返回值：
+	无
+*************************************************/
+void PairAckHandler(CommandData* dev)
+{
+	QuitPair();
+	ReflashHeartBeat(dev->dev_id);
+}
+
+/************************************************
+按键状态处理函数
+功能：
+	根据按键状态处理相关的事件
+	
+参数：
+	无
+
+返回值：
+	无
+*************************************************/
+void KeyHandler(void)
+{
+	if(KPStatus == KPPRESS)
+	{
+		if(keypairtime == 0)
+		{
+			if(KeyFlag == 0)
+			{
+				keypairtime = SystemTime;
+				KeyFlag = 1;
+			}
+		}
+		else
+		{
+			if(SystemTime - keypairtime > 2000)
+			{
+				if(BoardSt == NORMAL && OrtateMotorStatus == ORTATE_STATUS_STOP && MoveMotorStatus == MOTORMOVESTOP)
+				{
+					CAN_Send_Msg(NULL, 0, MAIN_BOARD, PAIRING);
+					BoardSt = ST_PAIR;
+					pairtime = SystemTime;
+				}
+				else if(BoardSt == ST_PAIR)
+				{
+					u8 st = 0;
+					CAN_Send_Msg(&st, 1, MAIN_BOARD, CANCEL_PAIR);
+					BoardSt = ST_CANCELPAIR;
+					pairtime = SystemTime;
+				}
+			}
+		}
+	}
+	else if(KPStatus == KPRELEASE)
+	{
+		KeyFlag = 1;
+		keypairtime = 0;
+		KPStatus = KEYNONE;
+	}
+}
+
 /********************************
 主控处理函数
 功能：
@@ -1272,18 +1394,25 @@ void Control_Handler(void)
 				case RIGHT_TURN:
 				case ORTATE_STOP:
 					OrtateMotorControl(&rxbuf.cmd);
+					QuitPair();
 					break;
 				case START_MOVE:
 				case RETREAT:
 				case STOP_MOVE:
 					MotorMoveControlHandler(&rxbuf.cmd);
+					QuitPair();
 					break;
 				case SPEED_CNTR:
 					SpeedControlHandler(&rxbuf.cmd);
+					QuitPair();
 					break;
 				case INCH_MODE:
 				case LINK_MODE:
 					ModeChangeHandler(&rxbuf.cmd);
+					QuitPair();
+					break;
+				case PAIR_ACK:
+					PairAckHandler(&rxbuf.cmd);
 					break;
 				case CONNECT:
 					ConnectHandler(&rxbuf.cmd);
@@ -1325,6 +1454,12 @@ void Control_Handler(void)
 			ControlDevice = MAIN_BOARD;
 		}
 
+		if((BoardSt == ST_PAIR || BoardSt == ST_CANCELPAIR) && (SystemTime - pairtime > PAIR_MAX_TIME))
+		{
+			BoardSt = NORMAL;
+			pairtime = 0;
+		}
+	
 		if(OrtateMotorTime > ORTATEMOTORTIME)
 		{
 			Ortate_Motor_Brate();
@@ -1332,6 +1467,7 @@ void Control_Handler(void)
 			OrtateMotorLock = 1;
 			OrtateMotorTime = 0;
 		}
+		KeyShakeCheck();
 		ConnectCheck();
 		ADCHandler();
 		FaultHandler();

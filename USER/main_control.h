@@ -48,6 +48,8 @@
 
 #define BEEPINDMAXTIME 200  //蜂鸣器指示时间200ms
 
+#define PAIR_MAX_TIME 10000  //配对最大时间10S
+
 #define LIMIT_CURRENT_SPD SPEED4
 
 #define ORTATEMOTORTIME 2000 //一次最多转动两秒
@@ -80,6 +82,8 @@ typedef enum
 typedef enum
 {
 	NORMAL = 0,
+	ST_PAIR,
+	ST_CANCELPAIR,
 	ORTATE_FAULT,
 	VOL_FAULT,
 	HIGH_VOL_FAULT,
@@ -94,6 +98,8 @@ typedef enum
 typedef enum
 {
 	NOWARN = 0,
+	PAIRWARN,
+	CANCELPAIRWARN,
 	ORTATEWARN,
 	VOLWARN,
 	TEMPWARN,
@@ -136,6 +142,9 @@ void WarningHandler(void);
 void ConnectCheck(void);
 void OrtateFaultCheck(void);
 void WorkPowerHandler(float cur,float vol);
+void KeyHandler(void);
+void QuitPair(void);
+void PairAckHandler(CommandData* dev);
 
 #endif
 

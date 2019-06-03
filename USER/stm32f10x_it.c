@@ -203,6 +203,23 @@ void EXTI2_IRQHandler(void)
 }
 #endif
 
+void EXTI3_IRQHandler(void)
+{
+	if(EXTI_GetITStatus(EXTI_Line3) != RESET)
+	{
+		if(KEY_PAIR == 0)
+		{
+			KeyStatusCheck(KPPRESS);
+		}
+		else if(KEY_PAIR == 1)
+		{
+			KeyStatusCheck(KPRELEASE);
+		}
+		EXTI_ClearITPendingBit(EXTI_Line3);
+	}
+}
+
+
 void EXTI4_IRQHandler(void)
 {
 	if(EXTI_GetITStatus(EXTI_Line4) != RESET)

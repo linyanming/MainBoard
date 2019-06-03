@@ -50,6 +50,9 @@ typedef enum
 	LINK_MODE = 11,    //联动模式
 	START_BOOT = 12,  //开机
 	CLOSE_BOOT = 13,  //关机
+	PAIRING = 14,     //配对
+	CANCEL_PAIR = 15, //取消配对
+	PAIR_ACK = 16,    //配对应答
 }Device_CMD;
 
 //命令数据结构体
