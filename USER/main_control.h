@@ -68,6 +68,10 @@
 #define VOLTAGE4 14.5
 #define VOLTAGEMAX 18
 
+#define SPEED_ADD   0x64 //速度加一档
+#define SPEED_SUB   0x65 //速度减一档
+#define SPEED_ONMAX 0x66 //速度切换，第一次收到时切换到最大档，第二次收到时切换到原始档位
+
 typedef struct
 {
 	u8 dev_id;     //控制设备id

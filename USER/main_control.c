@@ -20,7 +20,7 @@ u8 MoveMotorStatus;  //前进电机状态
 __IO u16 MotorMoveTime;   //前进时间
 __IO u16 OrateMoveTime;  //转向电机时间
 u8 Speed;      //前进电机速度
-
+u8 Speed_temp; //速度切换缓存变量
 __IO u32 BeepIndTime;  //蜂鸣器指示电机状态切换时间
 
 
@@ -873,6 +873,7 @@ void DeviceStatusInit(void)
 	OrtateMotorLock = 0;
 	OrtateMotorTime = 0;
 	Speed = SPEED0;
+	Speed_temp = Speed;
 	NowTemp = 0;
 //	NowCur = 0;
 	NowVol = 0;
@@ -1219,25 +1220,27 @@ void ModeChangeHandler(CommandData* dev)
 {
 	if(SearchDevice(dev->dev_id) != 0xff)
 	{
-		if(DeviceMode == INCH_MODE)
+		if(BoardSt != ST_PAIR && BoardSt != ST_CANCELPAIR)
 		{
-			DeviceMode = LINK_MODE;
-			MotorMoveStart();
-		}
-		else
-		{
-			DeviceMode = INCH_MODE;
-			MotorMoveStop();
-		}
-		
-		if(BoardSt == NORMAL)
-		{
-			BeepIndTime = 1;
-			BEEP = 1;
-		}
+			if(DeviceMode == INCH_MODE)
+			{
+				DeviceMode = LINK_MODE;
+				MotorMoveStart();
+			}
+			else
+			{
+				DeviceMode = INCH_MODE;
+				MotorMoveStop();
+			}
+			
+			if(BoardSt == NORMAL)
+			{
+				BeepIndTime = 1;
+				BEEP = 1;
+			}
 
-		MotorMoveTime = 0;
-		
+			MotorMoveTime = 0;
+		}
 		ReflashHeartBeat(dev->dev_id);
 	}
 }
@@ -1257,7 +1260,7 @@ void OrtateMotorControl(CommandData* dev)
 {
 	if(SearchDevice(dev->dev_id) != 0xff)
 	{
-		if(BoardSt < CONNECT_FAULT && BoardSt != ORTATE_FAULT)
+		if(BoardSt < CONNECT_FAULT && BoardSt != ORTATE_FAULT && BoardSt != ST_PAIR && BoardSt != ST_CANCELPAIR)
 		{
 			DEBUGMSG("OrtateMotorControl");
 			
@@ -1328,8 +1331,8 @@ void OrtateMotorControl(CommandData* dev)
 					ControlDevice = MAIN_BOARD;
 //				}
 			}
-			ReflashHeartBeat(dev->dev_id);
 		}
+		ReflashHeartBeat(dev->dev_id);
 	}
 }
 
@@ -1348,7 +1351,7 @@ void MotorMoveControlHandler(CommandData* dev)
 {
 	if(SearchDevice(dev->dev_id) != 0xff)
 	{
-		if(BoardSt <= WORKPOWER_FAULT && BoardSt != HIGH_VOL_FAULT && BoardSt != ORTATE_FAULT)
+		if(BoardSt <= WORKPOWER_FAULT && BoardSt != HIGH_VOL_FAULT && BoardSt != ORTATE_FAULT && BoardSt != ST_PAIR && BoardSt != ST_CANCELPAIR)
 		{
 			if(DeviceMode == INCH_MODE)
 			{
@@ -1408,16 +1411,51 @@ void SpeedControlHandler(CommandData* dev)
 {
 	if(SearchDevice(dev->dev_id) != 0xff)
 	{
-		if(Speed != dev->data[0])
-		{
-			if(BoardSt == NORMAL)
-			{
-				BeepIndTime = 1;
-				BEEP = 1;
+		if(BoardSt != ST_PAIR && BoardSt != ST_CANCELPAIR)
+		{
+			if(Speed != dev->data[0])
+			{
+				if(BoardSt == NORMAL)
+				{
+					BeepIndTime = 1;
+					BEEP = 1;
+				}
+				
+				if(dev->data[0] <= SPEED7)
+				{
+					Speed = dev->data[0];
+				}
+				else
+				{
+					if(dev->data[0] == SPEED_ADD)
+					{
+						if(Speed < SPEED7)
+						{
+							Speed++;
+						}
+					}
+					else if(dev->data[0] == SPEED_SUB)
+					{
+						if(Speed > SPEED0)
+						{
+							Speed--;
+						}
+					}
+					else if(dev->data[0] == SPEED_ONMAX)
+					{
+						if(Speed < SPEED7)
+						{
+							Speed_temp = Speed;
+							Speed = SPEED7;
+						}
+						else
+						{
+							Speed = Speed_temp;
+						}
+					}
+				}
+				MotorMoveSpeedSet();
 			}
-
-			Speed = dev->data[0];
-			MotorMoveSpeedSet();
 		}
 		ReflashHeartBeat(dev->dev_id);
 	}
@@ -1485,8 +1523,7 @@ void KeyHandler(void)
 				}
 				else if(BoardSt == ST_PAIR)
 				{
-					u8 st = 0;
-					CAN_Send_Msg(&st, 1, MAIN_BOARD, CANCEL_PAIR);
+					CAN_Send_Msg(NULL, 0, MAIN_BOARD, CANCEL_PAIR);
 					BoardSt = ST_CANCELPAIR;
 					pairtime = SystemTime;
 				}
@@ -1528,21 +1565,21 @@ void Control_Handler(void)
 				case RIGHT_TURN:
 				case ORTATE_STOP:
 					OrtateMotorControl(&rxbuf.cmd);
-					QuitPair();
+//					QuitPair();
 					break;
 				case START_MOVE:
 				case RETREAT:
 				case STOP_MOVE:
 					MotorMoveControlHandler(&rxbuf.cmd);
-					QuitPair();
+//					QuitPair();
 					break;
 				case SPEED_CNTR:
 					SpeedControlHandler(&rxbuf.cmd);
-					QuitPair();
+//					QuitPair();
 					break;
 				case MODE_CHANGE:
 					ModeChangeHandler(&rxbuf.cmd);
-					QuitPair();
+//					QuitPair();
 					break;
 				case PAIR_ACK:
 					PairAckHandler(&rxbuf.cmd);
