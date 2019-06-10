@@ -37,10 +37,10 @@ __IO u32 beepwarnontime; //蜂鸣器报警持续时间
 __IO u16 ledwarntime;	//LED报警时间
 __IO u16 ledwarnmaxtime;  //led报警时间间隔
 
-__IO u8 yelflashtimes;
-__IO u8 redflashtimes;
-__IO u8 yeltemptimes;
-__IO u8 redtemptimes;
+__IO u8 yelflashtimes;  //黄灯闪烁次数
+__IO u8 redflashtimes;  //红灯闪烁次数
+__IO u8 yeltemptimes;   //替换变量
+__IO u8 redtemptimes;   //替换变量
 
 __IO u32 keypairtime; //配对按键按下时间
 __IO u32 pairtime;    //配对持续时间
@@ -59,6 +59,19 @@ float NowWp;     //当前功率
 
 __IO u16 StartTime;
 __IO u32 SystemTime; //系统运行时间计数
+
+/********************************
+时间计数函数
+功能：
+	对相关时间进行计数     
+	单位：1ms
+	
+参数：
+	无
+	
+返回值：
+	无
+**************************************/
 void WarningTimeCounter(void)
 {
 	if(pwr_status == BOOT_RUN)
@@ -86,6 +99,18 @@ void WarningTimeCounter(void)
 		StartTime++;
 	}
 }
+
+/********************************
+警告处理函数
+功能：
+	对相关的状态进行指示灯及蜂鸣器的设置
+	
+参数：
+	无
+	
+返回值：
+	无
+**************************************/
 
 void WarningHandler(void)
 {
@@ -293,6 +318,17 @@ void WarningHandler(void)
 	}
 }
 
+/********************************
+错误处理函数
+功能：
+	处理错误及主板相关的状态
+	
+参数：
+	无
+	
+返回值：
+	无
+**************************************/
 void FaultHandler(void)
 {
 	switch(BoardSt)
@@ -401,6 +437,7 @@ void FaultHandler(void)
 				warnlv = TEMPWARN;
 			}
 			break;
+		case REEDKEY_FAULT:
 		case MOTOR_FAULT:
 			warnlv = MOTORWARN;
 			break;
@@ -439,6 +476,17 @@ void FaultHandler(void)
 	WarningHandler();
 }
 
+/********************************
+电压处理函数
+功能：
+	处理电压
+	
+参数：
+	无
+	
+返回值：
+	无
+**************************************/
 void VoltageHandler(float vol)
 {
 	VolStatus st;
@@ -544,6 +592,17 @@ void VoltageHandler(float vol)
 	}
 }
 
+/********************************
+功率处理
+功能：
+	功率处理
+	
+参数：
+	无
+	
+返回值：
+	无
+**************************************/
 void WorkPowerHandler(float cur,float vol)
 {
 	float wp;
@@ -629,6 +688,17 @@ void CurrentHandler(float cur)
 }
 #endif
 
+/********************************
+温度处理
+功能：
+	温度处理
+	
+参数：
+	无
+	
+返回值：
+	无
+**************************************/
 void TempHandler(float temp)
 {
 	if(fabs(temp - NowTemp) >= TEMPCHANGEVAL)
@@ -660,6 +730,17 @@ void TempHandler(float temp)
 	}
 }
 
+/********************************
+转向电机错误处理
+功能：
+	转向电机错误处理
+	
+参数：
+	无
+	
+返回值：
+	无
+**************************************/
 void OrtateFaultCheck(void)
 {
 	if(nF == 0)
@@ -679,13 +760,53 @@ void OrtateFaultCheck(void)
 	}
 }
 
+/********************************
+跌倒开关错误确认函数
+功能：
+	跌倒开关错误处理
+	
+参数：
+	无
+	
+返回值：
+	无
+**************************************/
+void ReedkeyFaultCheck(void)
+{
+	if(REED_KEY == 1)
+	{
+		if(BoardSt < REEDKEY_FAULT)
+			BoardSt = REEDKEY_FAULT;
+	}
+	else
+	{
+		if(BoardSt == REEDKEY_FAULT)
+		{
+			BoardSt = NORMAL;
+		}
+	}
+
+}
+
+
+/********************************
+ADC采样处理函数
+功能：
+	处理ADC采样出来的数据，温度，功率，电压
+	
+参数：
+	无
+	
+返回值：
+	无
+**************************************/
 void ADCHandler(void)
 {
 	u16 *val;
 	float vol;
 	float cur;
 	float temp;
-	if(SystemTime % 1000 == 0)
+	if(SystemTime % 1000 == 0)  //1S处理一次
 	{
 		val = Get_ADC_Value();
 //		printf("val = %d %d %d\r\n",val[0],val[1],val[2]);
@@ -700,6 +821,7 @@ void ADCHandler(void)
 		TempHandler(temp);
 	}
 	OrtateFaultCheck();
+	ReedkeyFaultCheck();
 }
 
 /********************************
