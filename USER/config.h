@@ -46,8 +46,8 @@ typedef enum
 	SPEED_CNTR = 7,   //调速
 	CONNECT = 8,	  //连接命令
 	CONNECT_ACK = 9, //连接应答
-	INCH_MODE = 10,    //点动模式
-	LINK_MODE = 11,    //联动模式
+	MODE_CHANGE = 10,    //模式切换
+	MOTOR_CHANGE = 11,    //控制状态反馈
 	START_BOOT = 12,  //开机
 	CLOSE_BOOT = 13,  //关机
 	PAIRING = 14,     //配对

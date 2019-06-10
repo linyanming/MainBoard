@@ -39,7 +39,7 @@ void CAN_Config(void)
 	CAN_Str.CAN_BS1 = CAN_BS1_9tq; //定义采样点位置
 	CAN_Str.CAN_BS2 = CAN_BS2_8tq; //定义发送点位置
 	CAN_Str.CAN_SJW = CAN_SJW_1tq; //
-	CAN_Str.CAN_Prescaler = 4;    //时钟分频系数，CAN总线波特率=APB1时钟/((BS1+BS2+SJW)*分频系数)                 ，在这里为 500kbps
+	CAN_Str.CAN_Prescaler = 8;    //时钟分频系数，CAN总线波特率=APB1时钟/((BS1+BS2+SJW)*分频系数)                 ，在这里为 250kbps
 	CAN_Str.CAN_Mode = CAN_Mode_Normal;
 	CAN_Str.CAN_NART = ENABLE;   //自动重传功能
 	CAN_Str.CAN_RFLM = DISABLE;   //是否使用FIFO

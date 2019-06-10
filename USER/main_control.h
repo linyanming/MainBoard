@@ -16,13 +16,16 @@
 
 #define STOP_TIME  2000  //长按关机时间  这里是2秒
 
-#define MAX_CON_DEVNUM 16
+#define MAX_CON_DEVNUM 16  //最大设备连接个数
 #define MAX_HEART_TIME 6000 //心跳超时时间 7s
 
 #define MOTORMOVERUN 1
 #define MOTORMOVESTOP 0
 
 #define MAX_MOVE_TIME 200  //电机一条命令最大转动时间 200ms
+
+#define INCH_MODE 0 //点动模式
+#define LINK_MODE 1 //联动模式
 
 #define BEEP_ONTIME 500
 #define BEEP_OFFTIME 200

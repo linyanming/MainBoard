@@ -872,7 +872,7 @@ void DeviceStatusInit(void)
 	BeepIndTime = 0;
 	OrtateMotorLock = 0;
 	OrtateMotorTime = 0;
-	Speed = 0;
+	Speed = SPEED0;
 	NowTemp = 0;
 //	NowCur = 0;
 	NowVol = 0;
@@ -903,13 +903,12 @@ void DeviceStatusInit(void)
 **************************************/
 void MotorMoveStart(void)
 {
+	u8 st;
+	st = (DeviceMode << 1) + 1;
 	TIM2->CCER |= 1 << 4;
 	MotorMoveSpeedSet();
 	MoveMotorStatus = MOTORMOVERUN;
-	if(DeviceMode == INCH_MODE)   //在点动模式下反馈电机状态给脚控板
-	{
-		CAN_Send_Msg(&Speed, 1, MAIN_BOARD, START_MOVE);
-	}
+	CAN_Send_Msg(&st, 1, MAIN_BOARD, MOTOR_CHANGE);
 }
 
 /********************************
@@ -925,12 +924,11 @@ void MotorMoveStart(void)
 **************************************/
 void MotorMoveStop(void)
 {
+	u8 st;
+	st = (DeviceMode << 1);
 	TIM2->CCER &=  0xffef;
 	MoveMotorStatus = MOTORMOVESTOP;
-	if(DeviceMode == INCH_MODE) //在点动模式下反馈电机状态给脚控板
-	{
-		CAN_Send_Msg(NULL, 0, MAIN_BOARD, STOP_MOVE);
-	}
+	CAN_Send_Msg(&st, 1, MAIN_BOARD, MOTOR_CHANGE);
 }
 
 /********************************
@@ -1221,14 +1219,25 @@ void ModeChangeHandler(CommandData* dev)
 {
 	if(SearchDevice(dev->dev_id) != 0xff)
 	{
-		DeviceMode = dev->dev_cmd;
 		if(DeviceMode == INCH_MODE)
 		{
+			DeviceMode = LINK_MODE;
+			MotorMoveStart();
+		}
+		else
+		{
+			DeviceMode = INCH_MODE;
 			MotorMoveStop();
+		}
+		
+		if(BoardSt == NORMAL)
+		{
 			BeepIndTime = 1;
 			BEEP = 1;
 		}
+
 		MotorMoveTime = 0;
+		
 		ReflashHeartBeat(dev->dev_id);
 	}
 }
@@ -1341,40 +1350,43 @@ void MotorMoveControlHandler(CommandData* dev)
 	{
 		if(BoardSt <= WORKPOWER_FAULT && BoardSt != HIGH_VOL_FAULT && BoardSt != ORTATE_FAULT)
 		{
-			if(dev->dev_cmd == START_MOVE)
+			if(DeviceMode == INCH_MODE)
 			{
-				if(MoveMotorStatus == MOTORMOVERUN)
+				if(dev->dev_cmd == START_MOVE)
 				{
-					MotorMoveTime = 1;
+					if(MoveMotorStatus == MOTORMOVERUN)
+					{
+						MotorMoveTime = 1;
+					}
+					else
+					{
+						if(BoardSt == NORMAL)
+						{
+							BeepIndTime = 1;
+							BEEP = 1;
+						}
+
+						Speed = dev->data[0];
+						MotorMoveSpeedSet();
+						MotorMoveStart();
+						MotorMoveTime = 1;
+					}
 				}
-				else
+				else if(dev->dev_cmd == STOP_MOVE)
 				{
-					if(BoardSt == NORMAL)
+	/*				if(BoardSt == NORMAL)
 					{
 						BeepIndTime = 1;
 						BEEP = 1;
-					}
+					}*/
 
-					Speed = dev->data[0];
-					MotorMoveSpeedSet();
-					MotorMoveStart();
-					MotorMoveTime = 1;
+					MotorMoveTime = 0;
+					MotorMoveStop();	
 				}
-			}
-			else if(dev->dev_cmd == STOP_MOVE)
-			{
-/*				if(BoardSt == NORMAL)
+				else
 				{
-					BeepIndTime = 1;
-					BEEP = 1;
-				}*/
-
-				MotorMoveTime = 0;
-				MotorMoveStop();	
-			}
-			else
-			{
-				return;		
+					return;		
+				}
 			}
 		}
 		ReflashHeartBeat(dev->dev_id);
@@ -1528,8 +1540,7 @@ void Control_Handler(void)
 					SpeedControlHandler(&rxbuf.cmd);
 					QuitPair();
 					break;
-				case INCH_MODE:
-				case LINK_MODE:
+				case MODE_CHANGE:
 					ModeChangeHandler(&rxbuf.cmd);
 					QuitPair();
 					break;
