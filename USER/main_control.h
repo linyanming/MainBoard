@@ -17,7 +17,7 @@
 #define STOP_TIME  2000  //长按关机时间  这里是2秒
 
 #define MAX_CON_DEVNUM 16  //最大设备连接个数
-#define MAX_HEART_TIME 6000 //心跳超时时间 7s
+#define MAX_HEART_TIME 4500 //心跳超时时间 4.5s
 
 #define MOTORMOVERUN 1
 #define MOTORMOVESTOP 0
@@ -27,9 +27,9 @@
 #define INCH_MODE 0 //点动模式
 #define LINK_MODE 1 //联动模式
 
-#define BEEP_ONTIME 500
-#define BEEP_OFFTIME 200
-#define BEEP_DELAY  500
+#define BEEP_ONTIME 250
+#define BEEP_OFFTIME 50
+#define BEEP_DELAY  250
 #define BEEP_ONTIMES 2
 
 #define RGB_SLOW_FLASH 750
@@ -49,7 +49,7 @@
 #define CURCHANGEVAL  0.5    //电流变化差值 单位：A
 #define WPCHANGEVAL   2      //功率变化差值 单位：W
 
-#define BEEPINDMAXTIME 200  //蜂鸣器指示时间200ms
+#define BEEPINDMAXTIME 100  //蜂鸣器指示时间200ms
 
 #define PAIR_MAX_TIME 10000  //配对最大时间10S
 #define KEYPAIRTOUCH 2000 //按键按下配对时间2S

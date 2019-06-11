@@ -205,6 +205,7 @@ void EXTI2_IRQHandler(void)
 
 void EXTI3_IRQHandler(void)
 {
+	DEBUGMSG("EXTI3_IRQHandler");
 	if(EXTI_GetITStatus(EXTI_Line3) != RESET)
 	{
 		if(KEY_PAIR == 0)
@@ -222,6 +223,7 @@ void EXTI3_IRQHandler(void)
 
 void EXTI4_IRQHandler(void)
 {
+	DEBUGMSG("EXTI4_IRQHandler");
 	if(EXTI_GetITStatus(EXTI_Line4) != RESET)
 	{
 //		delay_ms(10);

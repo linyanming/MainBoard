@@ -27,7 +27,8 @@ void Key_Init(void)
 	EXTI_InitTypeDef EXTI_Str;
 	NVIC_InitTypeDef NVIC_Str;
 	
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB | RCC_APB2Periph_AFIO, ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB | RCC_APB2Periph_GPIOA | RCC_APB2Periph_AFIO, ENABLE);
+	GPIO_PinRemapConfig(GPIO_Remap_SWJ_JTAGDisable,  ENABLE);
 
 	GPIO_Str.GPIO_Mode = GPIO_Mode_IN_FLOATING;
 	GPIO_Str.GPIO_Pin = GPIO_Pin_4 | GPIO_Pin_3 | GPIO_Pin_2;
@@ -57,17 +58,20 @@ void Key_Init(void)
 	NVIC_Str.NVIC_IRQChannelSubPriority = 2;
 	NVIC_Init(&NVIC_Str);
 #endif
+	NVIC_Str.NVIC_IRQChannel = EXTI3_IRQn;
+	NVIC_Str.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Str.NVIC_IRQChannelPreemptionPriority = 0;
+	NVIC_Str.NVIC_IRQChannelSubPriority = 2;
+	NVIC_Init(&NVIC_Str);
+
+
 	NVIC_Str.NVIC_IRQChannel = EXTI4_IRQn;
 	NVIC_Str.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Str.NVIC_IRQChannelPreemptionPriority = 0;
 	NVIC_Str.NVIC_IRQChannelSubPriority = 0;
 	NVIC_Init(&NVIC_Str);
 
-	NVIC_Str.NVIC_IRQChannel = EXTI3_IRQn;
-	NVIC_Str.NVIC_IRQChannelCmd = ENABLE;
-	NVIC_Str.NVIC_IRQChannelPreemptionPriority = 0;
-	NVIC_Str.NVIC_IRQChannelSubPriority = 2;
-	NVIC_Init(&NVIC_Str);
+
 
 #if 0
 	NVIC_Str.NVIC_IRQChannel = EXTI9_5_IRQn;
@@ -138,6 +142,7 @@ void KeyShakeCheck(void)
 *************************************************/
 void KeyStatusCheck(KeyEvent key)
 {
+	DEBUGMSG("key = %d", key);
 	switch(key)
 	{
 		case KPPRESS:

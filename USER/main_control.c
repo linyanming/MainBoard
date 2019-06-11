@@ -23,6 +23,7 @@ u8 Speed;      //前进电机速度
 u8 Speed_temp; //速度切换缓存变量
 __IO u32 BeepIndTime;  //蜂鸣器指示电机状态切换时间
 
+u8 cpflag; //允许取消配对变量
 
 VolStatus BoradVol = VOL_NONE;  //主板电量
 BoardStatus BoardSt = NORMAL;   //主板状态
@@ -281,7 +282,7 @@ void WarningHandler(void)
 		}
 	}
 
-	if(BoardSt == CONNECT_FAULT || BoardSt == MOTOR_FAULT)
+	if(BoardSt == CONNECT_FAULT || BoardSt == MOTOR_FAULT || BoardSt == REEDKEY_FAULT)
 	{
 		if(beepwarntime > 0 && beepwarntime < BEEP_ONTIME)
 		{
@@ -361,7 +362,7 @@ void FaultHandler(void)
 			}
 			break;
 #endif
-		case PAIRING:
+		case ST_PAIR:
 			if(warnlv < PAIRWARN)
 			{
 				ledwarntime = 1;
@@ -369,12 +370,12 @@ void FaultHandler(void)
 				warnlv = PAIRWARN;
 			}
 			break;
-		case CANCEL_PAIR:
+		case ST_CANCELPAIR:
 			if(warnlv < CANCELPAIRWARN)
 			{
 				ledwarntime = 1;
 				ledwarnmaxtime = RGB_NORMAL_FLASH;
-				warnlv = PAIRWARN;
+				warnlv = CANCELPAIRWARN;
 			}
 			break;
 		case WORKPOWER_FAULT:
@@ -446,17 +447,26 @@ void FaultHandler(void)
 				warnlv = CONNECTWARN;
 			break;
 		case NORMAL:
-			if(MoveMotorStatus != MOTORMOVESTOP)
+			if(condev.connum > 0)
 			{
-				RGBBLUE = 1;
-				RGBGREEN = 0;
+				if(MoveMotorStatus != MOTORMOVESTOP)
+				{
+					RGBBLUE = 1;
+					RGBGREEN = 0;
+				}
+				else
+				{
+					RGBBLUE = 0;
+					RGBGREEN = 1;
+				}
+				RGBRED = 0;
 			}
 			else
 			{
-				RGBBLUE = 0;
+				RGBBLUE = 1;
 				RGBGREEN = 1;
+				RGBRED = 1;
 			}
-			RGBRED = 0;
 			if(warnlv != NOWARN)
 				BEEP = 0;
 			beepwarntime = 0;
@@ -612,7 +622,7 @@ void WorkPowerHandler(float cur,float vol)
 	{
 		if(fabs(wp - NowWp) >= WPCHANGEVAL)
 		{
-			if(wp >= 50)
+			if(wp >= 50)    //电机停止状态下大于50W报警
 			{
 				BoardSt = MOTOR_FAULT;
 				return;
@@ -623,7 +633,7 @@ void WorkPowerHandler(float cur,float vol)
 	if(fabs(wp - NowWp) >= WPCHANGEVAL)
 	{
 		NowWp = wp;
-		if(wp > 600)
+		if(wp > 600)    //功率大于600W报警
 		{
 			if(WpTime == 0)
 			{
@@ -808,6 +818,7 @@ void ADCHandler(void)
 	float temp;
 	if(SystemTime % 1000 == 0)  //1S处理一次
 	{
+		DEBUGMSG("PB3 = %d pb4 = %d",KEY_PAIR,KEY_PWR);
 		val = Get_ADC_Value();
 //		printf("val = %d %d %d\r\n",val[0],val[1],val[2]);
 		cur = val[0] * 3.3 / 4096 / 20 * 1000 / 2; //工作电流
@@ -864,6 +875,7 @@ void MotorMoveCounter(void)
 **************************************/
 void DeviceStatusInit(void)
 {
+	cpflag = 0;
 	ControlDevice = MAIN_BOARD;
 	keypairtime = 0;
 	pairtime = 0;
@@ -1220,7 +1232,7 @@ void ModeChangeHandler(CommandData* dev)
 {
 	if(SearchDevice(dev->dev_id) != 0xff)
 	{
-		if(BoardSt != ST_PAIR && BoardSt != ST_CANCELPAIR)
+		if(BoardSt <= WORKPOWER_FAULT && BoardSt != HIGH_VOL_FAULT && BoardSt != ORTATE_FAULT && BoardSt != ST_PAIR && BoardSt != ST_CANCELPAIR)
 		{
 			if(DeviceMode == INCH_MODE)
 			{
@@ -1468,6 +1480,7 @@ void QuitPair(void)
 	{
 		BoardSt = NORMAL;
 		pairtime = 0;
+		cpflag = 0;
 	}
 }
 
@@ -1503,36 +1516,54 @@ void KeyHandler(void)
 {
 	if(KPStatus == KPPRESS)
 	{
-		if(keypairtime == 0)
+		if(condev.dev[REMOTE_BOARD].status == DEVCONN)
 		{
-			if(KeyFlag == 0)
+			DEBUGMSG("KPStatus == KPPRESS");
+			if(keypairtime == 0)
 			{
-				keypairtime = SystemTime;
-				KeyFlag = 1;
-			}
-		}
-		else
-		{
-			if(SystemTime - keypairtime > KEYPAIRTOUCH)
-			{
-				if(BoardSt == NORMAL && OrtateMotorStatus == ORTATE_STATUS_STOP && MoveMotorStatus == MOTORMOVESTOP)
+				if(KeyFlag == 0)
 				{
-					CAN_Send_Msg(NULL, 0, MAIN_BOARD, PAIRING);
-					BoardSt = ST_PAIR;
-					pairtime = SystemTime;
+					DEBUGMSG("keypairtime = SystemTime;");
+					keypairtime = SystemTime;
+					KeyFlag = 1;
 				}
-				else if(BoardSt == ST_PAIR)
+			}
+			else
+			{
+				DEBUGMSG("KEYPAIRTOUCH");
+			
+				if(SystemTime - keypairtime > KEYPAIRTOUCH && pairtime == 0)
 				{
-					CAN_Send_Msg(NULL, 0, MAIN_BOARD, CANCEL_PAIR);
-					BoardSt = ST_CANCELPAIR;
-					pairtime = SystemTime;
+					DEBUGMSG("keypairtime");
+					if(BoardSt == NORMAL && OrtateMotorStatus == ORTATE_STATUS_STOP && MoveMotorStatus == MOTORMOVESTOP)
+					{
+						CAN_Send_Msg(NULL, 0, MAIN_BOARD, PAIRING);
+						BoardSt = ST_PAIR;
+						pairtime = SystemTime;
+					}
+
+				}
+
+				if(SystemTime - keypairtime > KEYPAIRTOUCH && BoardSt == ST_PAIR && cpflag == 1)
+				{
+					if(OrtateMotorStatus == ORTATE_STATUS_STOP && MoveMotorStatus == MOTORMOVESTOP)
+					{
+						CAN_Send_Msg(NULL, 0, MAIN_BOARD, CANCEL_PAIR);
+						BoardSt = ST_CANCELPAIR;
+						pairtime = SystemTime;
+					}
 				}
 			}
 		}
 	}
 	else if(KPStatus == KPRELEASE)
 	{
-		KeyFlag = 1;
+		DEBUGMSG("BoardSt = %d", BoardSt);
+		if(BoardSt == ST_PAIR)
+		{
+			cpflag = 1;
+		}
+		KeyFlag = 0;
 		keypairtime = 0;
 		KPStatus = KEYNONE;
 	}
@@ -1628,6 +1659,7 @@ void Control_Handler(void)
 		{
 			BoardSt = NORMAL;
 			pairtime = 0;
+			cpflag = 0;
 		}
 	
 		if(OrtateMotorTime > ORTATEMOTORTIME)
@@ -1638,6 +1670,7 @@ void Control_Handler(void)
 			OrtateMotorTime = 0;
 		}
 		KeyShakeCheck();
+		KeyHandler();
 		ConnectCheck();
 		ADCHandler();
 		FaultHandler();
@@ -1700,6 +1733,8 @@ void Control_Handler(void)
 //		NowCur = 0;
 		NowTemp = 0;
 		NowWp = 0;
+		Speed = SPEED0;
+		cpflag = 0;
 		beepwarnontime = 0;
 		yelflashtimes = 0;
 		redflashtimes = 0;
@@ -1708,6 +1743,7 @@ void Control_Handler(void)
 		OrtateMotorTime = 0;
 		OrateMoveTime = 0;
 		BeepIndTime = 0;
+		memset(&condev,0,sizeof(condev));
 		BEEP = 0;
 		DeviceMode = INCH_MODE;
 		CAN_Send_Msg(NULL, 0, MAIN_BOARD, CLOSE_BOOT);

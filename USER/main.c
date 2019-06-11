@@ -72,12 +72,12 @@ int main(void)
 #endif
 	Led_Init();
 	Motor_Pwm_Init();
-	Key_Init();
+	
 	CAN_Config();
 //	IWDG_Init();
 	ADC_Config();
 //	TIM3_Init();
-
+	Key_Init();
 	DeviceStatusInit();
 	while (1)
 	{
