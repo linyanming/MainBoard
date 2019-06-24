@@ -58,7 +58,10 @@
 
 #define ORTATEMOTORTIME 2000 //一次最多转动两秒
 
-#define STARTTIME 200 //开机流水灯间隔
+#define STARTTIME 500 //开机流水灯间隔
+
+#define VOLDISTOUCH 300 //按键电量显示
+#define VOLDISTIME  2000 //电量显示时间
 
 //电池电压
 #define VOLTAGE0  9
@@ -133,6 +136,8 @@ extern CommandBuf rxbuf;
 extern __IO u16 pwr_time;
 extern u8 Speed;
 extern BoardStatus BoardSt;
+extern __IO u16 StartTime;
+extern u8 Voldisflag;
 
 
 void TIM3_Init(void);
@@ -163,6 +168,10 @@ void WorkPowerHandler(float cur,float vol);
 void KeyHandler(void);
 void QuitPair(void);
 void PairAckHandler(CommandData* dev);
+void CloseBootCheck(void);
+void CloseBootHandler(void);
+void Voldisplay(float vol);
+void Volreflash(void);
 
 #endif
 

@@ -137,16 +137,12 @@ void PendSV_Handler(void)
 #include "pwm.h"
 #include "main_control.h"
 #include "can.h"
+#include "led.h"
 void SysTick_Handler(void)
 {
 	if(pwr_time >= 1)
 	{
 		pwr_time++;
-		if(pwr_time > STOP_TIME)
-		{
-			pwr_status = BOOT_STOP;
-			pwr_time = 0;
-		}
 	}
 	WarningTimeCounter();
 	HeartBeatCounter();
@@ -226,53 +222,34 @@ void EXTI4_IRQHandler(void)
 	DEBUGMSG("EXTI4_IRQHandler");
 	if(EXTI_GetITStatus(EXTI_Line4) != RESET)
 	{
-//		delay_ms(10);
+//		DelayMs(10);
 		if(KEY_PWR == 0)
 		{
-			if(pwr_status == BOOT_STOP)
-			{
-				if(PWR_GetFlagStatus(PWR_FLAG_WU) != RESET)
-				{
-					PWR_ClearFlag(PWR_FLAG_WU);
-				}
-				SYSCLKConfig_STOP();
-				pwr_status = BOOT_INIT;
-				
-//				DeviceStatusInit();
-			}
-			else
-			{
-				pwr_time = 1;
-			}
+			KeyStatusCheck(KPWRPRESS);
 		}
-
-		if(KEY_PWR == 1)
+		else if(KEY_PWR == 1)
 		{
-			pwr_time = 0;
-
+			KeyStatusCheck(KPWRRELEASE);
 		}
 		
 		EXTI_ClearITPendingBit(EXTI_Line4);
 	}
 }
 
-#if 0
-void TIM3_IRQHandler(void)
-{
-	if(TIM_GetITStatus(TIM3, TIM_IT_Update) != RESET)
-	{
-		pwr_status = BOOT_STOP;
-		TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
-	}
-}
-#endif
 
 void USB_LP_CAN1_RX0_IRQHandler(void)
 {
-	if(rxbuf.Rxflag == 0)
+	if(pwr_status == BOOT_RUN)
+	{
+		if(rxbuf.Rxflag == 0)
+		{
+			CAN_Receive_Msg(&rxbuf.cmd);
+			rxbuf.Rxflag = 1;
+		}
+	}
+	else
 	{
 		CAN_Receive_Msg(&rxbuf.cmd);
-		rxbuf.Rxflag = 1;
 	}
 }
 

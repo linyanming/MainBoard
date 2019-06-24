@@ -100,6 +100,11 @@ void delay_ms(__IO u32 ms)
 	while(TimingDelay != 0);
 }
 
+void DelayMs(__IO u32 ms)
+{
+	u32 i = 8000 * ms;
+	while(i--);
+}
 /*
 void delay_ms(u32 ms)
 {

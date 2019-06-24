@@ -17,8 +17,12 @@ typedef struct
 }KSCheck;
 //按键检测
 KSCheck KPCheck;
+KSCheck KPWRCheck;
+
 u8 KPStatus = KEYNONE;
+u8 KPWRStatus = KEYNONE;
 u8 KeyFlag = 0;
+u8 KPWRFlag = 0;
 
 
 void Key_Init(void)
@@ -129,6 +133,49 @@ void KeyShakeCheck(void)
 			KPStatus = KPRELEASE;
 		}
 	}
+
+	if(KPWRCheck.k_status == PRESS_CHECK)
+	{
+		if(KPWRCheck.times < KCHECK_MAXTIMES)
+		{
+			if(KEY_PWR == 0)
+			{
+				KPWRCheck.times++;
+			}
+			else
+			{
+				KPWRCheck.times = 0;
+				KPWRCheck.k_status = NO_ACTION;
+			}
+		}
+		else
+		{
+			KPWRCheck.times = 0;
+			KPWRCheck.k_status = NO_ACTION;
+			KPWRStatus = KPWRPRESS;
+		}
+	}
+	else if(KPWRCheck.k_status == RELEASE_CHECK)
+	{
+		if(KPWRCheck.times < KCHECK_MAXTIMES)
+		{
+			if(KEY_PWR == 1)
+			{
+				KPWRCheck.times++;
+			}
+			else
+			{
+				KPWRCheck.times = 0;
+				KPWRCheck.k_status = NO_ACTION;
+			}
+		}
+		else
+		{
+			KPWRCheck.times = 0;
+			KPWRCheck.k_status = NO_ACTION;
+			KPWRStatus = KPWRRELEASE;
+		}
+	}
 }
 
 /************************************************
@@ -157,6 +204,20 @@ void KeyStatusCheck(KeyEvent key)
 			{
 				KPCheck.k_status = RELEASE_CHECK;
 				KPCheck.times = 0;
+			}
+			break;
+		case KPWRPRESS:
+			if(KPWRStatus == KEYNONE)
+			{
+				KPWRCheck.k_status = PRESS_CHECK;
+				KPWRCheck.times = 0;
+			}
+			break;
+		case KPWRRELEASE:
+			if(KPWRStatus == KPWRPRESS)
+			{
+				KPWRCheck.k_status = RELEASE_CHECK;
+				KPWRCheck.times = 0;
 			}
 			break;
 		default:

@@ -15,6 +15,8 @@ typedef enum
 	KEYNONE = 0,    //无按键按下
 	KPPRESS,        //pair按键按下
 	KPRELEASE,      //pair按键释放
+	KPWRPRESS,      //PWR按键按下
+	KPWRRELEASE,    //PWR按键释放
 }KeyEvent;
 
 
@@ -29,6 +31,8 @@ typedef enum
 extern u8 KeyStatus;
 extern u8 KeyFlag;
 extern u8 KPStatus;
+extern u8 KPWRStatus;
+extern u8 KPWRFlag; 
 
 void Key_Init(void);
 void KeyStatusCheck(KeyEvent key);

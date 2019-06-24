@@ -12,6 +12,7 @@ void delay_ms(u32 ms);
 void TimingDelay_Decrement(void);
 
 
+void DelayMs(__IO u32 ms);
 
 
 #endif

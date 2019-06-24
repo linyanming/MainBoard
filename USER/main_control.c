@@ -46,9 +46,11 @@ __IO u8 redtemptimes;   //替换变量
 __IO u32 keypairtime; //配对按键按下时间
 __IO u32 pairtime;    //配对持续时间
 
-u8 ControlDevice;  //当前控制转向电机的设备
+//u8 ControlDevice;  //当前控制转向电机的设备
 u8 OrtateMotorLock; //转向电机锁 主要用于转270度停止
 __IO u16 OrtateMotorTime; //一次最多转动270度
+
+u8 Voldisflag; //电量显示变量
 
 CommandBuf rxbuf;   //接收缓存
 ConnectDev condev;  //连接设备列表
@@ -81,8 +83,6 @@ void WarningTimeCounter(void)
 			beepwarntime++;
 		if(ledwarntime > 0)
 			ledwarntime++;
-//		if(BigCurrenttime > 0)
-//			BigCurrenttime++;
 		if(TempTime > 0)
 			TempTime++;
 		if(BeepIndTime > 0)
@@ -97,7 +97,8 @@ void WarningTimeCounter(void)
 	}
 	else if(pwr_status == BOOT_INIT)
 	{
-		StartTime++;
+		if(StartTime > 0)
+			StartTime++;
 	}
 }
 
@@ -440,11 +441,19 @@ void FaultHandler(void)
 			break;
 		case REEDKEY_FAULT:
 		case MOTOR_FAULT:
+			Ortate_Motor_Brate();
+			MotorMoveStop();
+			DeviceMode = INCH_MODE;
 			warnlv = MOTORWARN;
 			break;
 		case CONNECT_FAULT:
-			if(warnlv < CONNECTWARN)
+			if(warnlv < CONNECTWARN)
+			{
+				Ortate_Motor_Brate();
+				MotorMoveStop();
+				DeviceMode = INCH_MODE;
 				warnlv = CONNECTWARN;
+			}
 			break;
 		case NORMAL:
 			if(condev.connum > 0)
@@ -529,10 +538,13 @@ void VoltageHandler(float vol)
 			}
 			if(st != BoradVol)
 			{
-				LED1 = 1;
-				LED2 = 1;
-				LED3 = 1;
-				LED4 = 1;
+				if(Voldisflag == 0)
+				{
+					LED1 = 1;
+					LED2 = 1;
+					LED3 = 1;
+					LED4 = 1;
+				}
 				BoradVol = st;
 			}
 		}
@@ -545,10 +557,14 @@ void VoltageHandler(float vol)
 			}
 			if(st != BoradVol)
 			{
-				LED1 = 1;
-				LED2 = 1;
-				LED3 = 1;
-				LED4 = 0;
+				
+				if(Voldisflag == 0)
+				{
+					LED1 = 1;
+					LED2 = 1;
+					LED3 = 1;
+					LED4 = 0;
+				}
 				BoradVol = st;
 			}
 		
@@ -562,10 +578,13 @@ void VoltageHandler(float vol)
 			}
 			if(st != BoradVol)
 			{
-				LED1 = 1;
-				LED2 = 1;
-				LED3 = 0;
-				LED4 = 0;
+				if(Voldisflag == 0)
+				{
+					LED1 = 1;
+					LED2 = 1;
+					LED3 = 0;
+					LED4 = 0;
+				}
 				BoradVol = st;
 			}
 		
@@ -579,20 +598,26 @@ void VoltageHandler(float vol)
 			}
 			if(st != BoradVol)
 			{
-				LED1 = 1;
-				LED2 = 0;
-				LED3 = 0;
-				LED4 = 0;
+				if(Voldisflag == 0)
+				{
+					LED1 = 1;
+					LED2 = 0;
+					LED3 = 0;
+					LED4 = 0;
+				}
 				BoradVol = st;
 			}
 		
 		}
 		else
 		{
-			LED1 = 0;
-			LED2 = 0;
-			LED3 = 0;
-			LED4 = 0;
+			if(Voldisflag == 0)
+			{
+				LED1 = 0;
+				LED2 = 0;
+				LED3 = 0;
+				LED4 = 0;
+			}
 			if(BoardSt < VOL_FAULT)
 			{
 				BoardSt = VOL_FAULT;
@@ -875,8 +900,9 @@ void MotorMoveCounter(void)
 **************************************/
 void DeviceStatusInit(void)
 {
+	Voldisflag = 0;
 	cpflag = 0;
-	ControlDevice = MAIN_BOARD;
+//	ControlDevice = MAIN_BOARD;
 	keypairtime = 0;
 	pairtime = 0;
 	SystemTime = 0;
@@ -899,6 +925,9 @@ void DeviceStatusInit(void)
 	ConnStatus = DEVINIT;
 	DeviceMode = INCH_MODE;
 	MoveMotorStatus = MOTORMOVESTOP;
+	OrtateMotorStatus = ORTATE_STATUS_STOP;
+	BoardSt = NORMAL;
+	warnlv = NOWARN;
 	memset(&rxbuf,0,sizeof(rxbuf));
 	memset(&condev,0,sizeof(condev));
 }
@@ -1278,11 +1307,18 @@ void OrtateMotorControl(CommandData* dev)
 			
 			if(dev->dev_cmd == LEFT_TURN)
 			{
-				if(ControlDevice == MAIN_BOARD || ControlDevice == dev->dev_id)
-				{
+//				if(ControlDevice == MAIN_BOARD || ControlDevice == dev->dev_id)
+//				{
 					if(OrtateMotorLock == 0)
 					{
-						if(OrtateMotorStatus == ORTATE_STATUS_LEFT)
+						if(OrtateMotorStatus == ORTATE_STATUS_RIGHT)
+						{
+							Ortate_Motor_Brate();
+							OrtateMotorLock = 1;
+							OrtateMotorTime = 0;
+							OrateMoveTime = 0;
+						}
+						else if(OrtateMotorStatus == ORTATE_STATUS_LEFT)
 						{
 							OrateMoveTime = 1;
 						}
@@ -1298,16 +1334,23 @@ void OrtateMotorControl(CommandData* dev)
 							OrtateMotorTime = 1;
 						}
 					}
-					ControlDevice = dev->dev_id;
-				}
+//					ControlDevice = dev->dev_id;
+//				}
 			}
 			else if(dev->dev_cmd == RIGHT_TURN)
 			{
-				if(ControlDevice == MAIN_BOARD || ControlDevice == dev->dev_id)
-				{
+//				if(ControlDevice == MAIN_BOARD || ControlDevice == dev->dev_id)
+//				{
 					if(OrtateMotorLock == 0)
 					{
-						if(OrtateMotorStatus == ORTATE_STATUS_RIGHT)
+						if(OrtateMotorStatus == ORTATE_STATUS_LEFT)
+						{
+							Ortate_Motor_Brate();
+							OrtateMotorLock = 1;
+							OrtateMotorTime = 0;
+							OrateMoveTime = 0;
+						}
+						else if(OrtateMotorStatus == ORTATE_STATUS_RIGHT)
 						{
 							OrateMoveTime = 1;
 						}
@@ -1324,8 +1367,8 @@ void OrtateMotorControl(CommandData* dev)
 							OrtateMotorTime = 1;
 						}
 					}
-					ControlDevice = dev->dev_id;
-				}
+//					ControlDevice = dev->dev_id;
+//				}
 			}
 			else
 			{	
@@ -1340,7 +1383,7 @@ void OrtateMotorControl(CommandData* dev)
 					OrtateMotorLock = 0;
 					OrtateMotorTime = 0;
 					OrateMoveTime = 0;
-					ControlDevice = MAIN_BOARD;
+//					ControlDevice = MAIN_BOARD;
 //				}
 			}
 		}
@@ -1514,59 +1557,449 @@ void PairAckHandler(CommandData* dev)
 *************************************************/
 void KeyHandler(void)
 {
-	if(KPStatus == KPPRESS)
+	if(pwr_status == BOOT_RUN)
 	{
-		if(condev.dev[REMOTE_BOARD].status == DEVCONN)
+		if(KPStatus == KPPRESS)
 		{
-			DEBUGMSG("KPStatus == KPPRESS");
-			if(keypairtime == 0)
+			if(condev.dev[REMOTE_BOARD].status == DEVCONN)
 			{
-				if(KeyFlag == 0)
+				DEBUGMSG("KPStatus == KPPRESS");
+				if(keypairtime == 0)
 				{
-					DEBUGMSG("keypairtime = SystemTime;");
-					keypairtime = SystemTime;
-					KeyFlag = 1;
+					if(KeyFlag == 0)
+					{
+						DEBUGMSG("keypairtime = SystemTime;");
+						keypairtime = SystemTime;
+						KeyFlag = 1;
+					}
 				}
+				else
+				{
+					DEBUGMSG("KEYPAIRTOUCH");
+				
+					if(SystemTime - keypairtime > KEYPAIRTOUCH && pairtime == 0)
+					{
+						DEBUGMSG("keypairtime");
+						if(BoardSt == NORMAL && OrtateMotorStatus == ORTATE_STATUS_STOP && MoveMotorStatus == MOTORMOVESTOP)
+						{
+							CAN_Send_Msg(NULL, 0, MAIN_BOARD, PAIRING);
+							BoardSt = ST_PAIR;
+							pairtime = SystemTime;
+						}
+
+					}
+
+					if(SystemTime - keypairtime > KEYPAIRTOUCH && BoardSt == ST_PAIR && cpflag == 1)
+					{
+						if(OrtateMotorStatus == ORTATE_STATUS_STOP && MoveMotorStatus == MOTORMOVESTOP)
+						{
+							CAN_Send_Msg(NULL, 0, MAIN_BOARD, CANCEL_PAIR);
+							BoardSt = ST_CANCELPAIR;
+							pairtime = SystemTime;
+						}
+					}
+				}
+			}
+		}
+		else if(KPStatus == KPRELEASE)
+		{
+			DEBUGMSG("BoardSt = %d", BoardSt);
+			if(BoardSt == ST_PAIR)
+			{
+				cpflag = 1;
+			}
+			KeyFlag = 0;
+			keypairtime = 0;
+			KPStatus = KEYNONE;
+		}
+	}
+
+	if(KPWRStatus == KPWRPRESS)
+	{
+		if(KPWRFlag == 0)
+		{
+			if(pwr_status == BOOT_STOP)
+			{
+		/*		if(PWR_GetFlagStatus(PWR_FLAG_WU) != RESET)
+				{
+					PWR_ClearFlag(PWR_FLAG_WU);
+				}
+				SYSCLKConfig_STOP();	*/
+				pwr_status = BOOT_INIT;
+				StartTime = 0;
+				pwr_time = 1;
+			}
+			else if(pwr_status == BOOT_RUN)
+			{
+				pwr_time = 1;
+				Voldisflag = 1;
 			}
 			else
 			{
-				DEBUGMSG("KEYPAIRTOUCH");
-			
-				if(SystemTime - keypairtime > KEYPAIRTOUCH && pairtime == 0)
-				{
-					DEBUGMSG("keypairtime");
-					if(BoardSt == NORMAL && OrtateMotorStatus == ORTATE_STATUS_STOP && MoveMotorStatus == MOTORMOVESTOP)
-					{
-						CAN_Send_Msg(NULL, 0, MAIN_BOARD, PAIRING);
-						BoardSt = ST_PAIR;
-						pairtime = SystemTime;
-					}
-
-				}
-
-				if(SystemTime - keypairtime > KEYPAIRTOUCH && BoardSt == ST_PAIR && cpflag == 1)
-				{
-					if(OrtateMotorStatus == ORTATE_STATUS_STOP && MoveMotorStatus == MOTORMOVESTOP)
-					{
-						CAN_Send_Msg(NULL, 0, MAIN_BOARD, CANCEL_PAIR);
-						BoardSt = ST_CANCELPAIR;
-						pairtime = SystemTime;
-					}
-				}
+				pwr_time = 1;
+	//				StartTime = 0;
 			}
+			KPWRFlag = 1;
 		}
 	}
-	else if(KPStatus == KPRELEASE)
+	else if(KPWRStatus == KPWRRELEASE)
 	{
-		DEBUGMSG("BoardSt = %d", BoardSt);
-		if(BoardSt == ST_PAIR)
+		if(pwr_status == BOOT_INIT)
 		{
-			cpflag = 1;
+			if(pwr_time > 100 && pwr_time < VOLDISTOUCH)
+			{
+				Voldisflag = 1;
+			}
+			else
+			{
+				pwr_status = BOOT_STOP;
+			}
 		}
-		KeyFlag = 0;
-		keypairtime = 0;
-		KPStatus = KEYNONE;
-	}
+		else if(pwr_status == BOOT_RUN)
+		{
+			Volreflash();
+			Voldisflag = 0;
+		}
+		pwr_time = 0;
+		KPWRStatus = KEYNONE;
+		KPWRFlag = 0;
+	}
+}
+
+
+/********************************
+电压更新
+功能：
+	电压更新
+	
+参数：
+	无
+	
+返回值：
+	无
+**************************************/
+void Volreflash(void)
+{
+	u16 *val;
+	float vol;
+	val = Get_ADC_Value();
+	vol = val[1] * 3.3 / 4096 * 10;  //工作电压
+	Voldisplay(vol);
+}
+
+/********************************
+开机运行函数
+功能：
+	开机状态下主程序运行
+	
+参数：
+	无
+	
+返回值：
+	无
+**************************************/
+void BootRunHandler(void)
+{
+	if(rxbuf.Rxflag == 1)
+	{
+		DEBUGMSG("Control_Handler dev_cmd = %d", rxbuf.cmd.dev_cmd);
+		switch(rxbuf.cmd.dev_cmd)
+		{
+			case HEARTBEAT:
+				HeartBeatHandler(rxbuf.cmd.dev_id);
+				break;
+			case LEFT_TURN:
+			case RIGHT_TURN:
+			case ORTATE_STOP:
+				OrtateMotorControl(&rxbuf.cmd);
+//					QuitPair();
+				break;
+			case START_MOVE:
+			case RETREAT:
+			case STOP_MOVE:
+				MotorMoveControlHandler(&rxbuf.cmd);
+//					QuitPair();
+				break;
+			case SPEED_CNTR:
+				SpeedControlHandler(&rxbuf.cmd);
+//					QuitPair();
+				break;
+			case MODE_CHANGE:
+				ModeChangeHandler(&rxbuf.cmd);
+//					QuitPair();
+				break;
+			case PAIR_ACK:
+				PairAckHandler(&rxbuf.cmd);
+				break;
+			case CONNECT:
+				ConnectHandler(&rxbuf.cmd);
+				break;
+			case CONNECT_ACK:
+				break;
+			default:
+				break;
+		}
+
+		rxbuf.Rxflag = 0;
+	}
+
+	if(MotorMoveTime > MAX_MOVE_TIME)
+	{
+		MotorMoveStop();
+		MotorMoveTime = 0;
+	}
+
+	if(BeepIndTime > BEEPINDMAXTIME)
+	{
+		BeepIndTime = 0;
+		BEEP = 0;
+	}
+
+	if(OrateMoveTime > MAX_MOVE_TIME)
+	{
+		Ortate_Motor_Brate();
+//			OrtateMotorLock = 0;
+		OrateMoveTime = 0;
+		OrtateMotorTime = 0;
+//		ControlDevice = MAIN_BOARD;
+	}
+
+	if((BoardSt == ST_PAIR || BoardSt == ST_CANCELPAIR) && (SystemTime - pairtime > PAIR_MAX_TIME))
+	{
+		BoardSt = NORMAL;
+		pairtime = 0;
+		cpflag = 0;
+	}
+
+	if(OrtateMotorTime > ORTATEMOTORTIME)
+	{
+		Ortate_Motor_Brate();
+		OrateMoveTime = 0;
+		OrtateMotorLock = 1;
+		OrtateMotorTime = 0;
+	}
+	KeyShakeCheck();
+	KeyHandler();
+	ConnectCheck();
+	ADCHandler();
+	FaultHandler();
+	CloseBootCheck();
+}
+
+/********************************
+BOOT_INIT状态处理函数
+功能：
+	BOOT_INIT状态处理
+	
+参数：
+	无
+	
+返回值：
+	无
+**************************************/
+
+void BootInitHandler(void)
+{
+	
+
+	
+	if(Voldisflag)
+	{
+		Volreflash();
+		Voldisflag = 0;
+		StartTime = 1;
+	}
+
+	if(StartTime > VOLDISTIME)
+	{
+		StartTime = 0;
+		pwr_status = BOOT_STOP;
+	}
+
+	if(pwr_time >= VOLDISTOUCH && pwr_time <= (STARTTIME + VOLDISTOUCH))
+	{
+		StartTime = 0;
+		LED1 = 1;
+		LED2 = 0;
+		LED3 = 0;
+		LED4 = 0;
+	}
+	else if(pwr_time > (STARTTIME + VOLDISTOUCH) && pwr_time <= (STARTTIME * 2 + VOLDISTOUCH))
+	{
+		LED1 = 1;
+		LED2 = 1;
+		LED3 = 0;
+		LED4 = 0;
+	}
+	else if(pwr_time > (STARTTIME * 2 + VOLDISTOUCH) && pwr_time <= (STARTTIME * 3 + VOLDISTOUCH))
+	{
+		LED1 = 1;
+		LED2 = 1;
+		LED3 = 1;
+		LED4 = 0;
+	}
+	else if(pwr_time > (STARTTIME * 3 + VOLDISTOUCH) && pwr_time <= (STARTTIME * 4 + VOLDISTOUCH))
+	{
+		LED1 = 1;
+		LED2 = 1;
+		LED3 = 1;
+		LED4 = 1;
+	}
+	else if(pwr_time > (STARTTIME * 4 + VOLDISTOUCH))
+	{
+		pwr_time = 0;
+		pwr_status = BOOT_RUN;
+//			StartTime = 0;
+		CAN_Send_Msg(NULL, 0, MAIN_BOARD,START_BOOT);
+	}
+}
+
+/********************************
+关机确认函数
+功能：
+	播放关机动画
+	
+参数：
+	无
+	
+返回值：
+	无
+**************************************/
+void CloseBootCheck(void)
+{
+	if(Voldisflag == 1)
+	{
+		if(pwr_time >= VOLDISTOUCH && pwr_time <= (STARTTIME + VOLDISTOUCH))
+		{
+			LED1 = 1;
+			LED2 = 1;
+			LED3 = 1;
+			LED4 = 1;
+		}
+		else if(pwr_time > (STARTTIME + VOLDISTOUCH) && pwr_time <= (STARTTIME * 2 + VOLDISTOUCH))
+		{
+			LED1 = 1;
+			LED2 = 1;
+			LED3 = 1;
+			LED4 = 0;
+		}
+		else if(pwr_time > (STARTTIME * 2 + VOLDISTOUCH) && pwr_time <= (STARTTIME * 3 + VOLDISTOUCH))
+		{
+			LED1 = 1;
+			LED2 = 1;
+			LED3 = 0;
+			LED4 = 0;
+		}
+		else if(pwr_time > (STARTTIME * 3 + VOLDISTOUCH) && pwr_time <= (STARTTIME * 4 + VOLDISTOUCH))
+		{
+			LED1 = 1;
+			LED2 = 0;
+			LED3 = 0;
+			LED4 = 0;
+		}
+		else if(pwr_time > (STARTTIME * 4 + VOLDISTOUCH))
+		{
+			CloseBootHandler();
+			Voldisflag = 0;
+			pwr_status = BOOT_STOP;
+			pwr_time = 0;
+		}
+	}
+}
+
+/********************************
+关机处理函数
+功能：
+	关机相关变量初始化
+	
+参数：
+	无
+	
+返回值：
+	无
+**************************************/
+
+void CloseBootHandler(void)
+{
+	SystemTime = 0;
+	TIM2->CCER &=  0xffef;
+	MoveMotorStatus = MOTORMOVESTOP;
+	Ortate_Motor_Brate();
+	BoardSt = NORMAL;
+	warnlv = NOWARN;
+	NowVol = 0;
+//		NowCur = 0;
+	NowTemp = 0;
+	NowWp = 0;
+	Speed = SPEED0;
+	cpflag = 0;
+	beepwarnontime = 0;
+	yelflashtimes = 0;
+	redflashtimes = 0;
+	MotorMoveTime = 0;
+	OrtateMotorLock = 0;
+	OrtateMotorTime = 0;
+	OrateMoveTime = 0;
+	BeepIndTime = 0;
+	memset(&condev,0,sizeof(condev));
+	BEEP = 0;
+	DeviceMode = INCH_MODE;
+	CAN_Send_Msg(NULL, 0, MAIN_BOARD, CLOSE_BOOT);
+	while(CAN_GetFlagStatus(CAN1, CAN_FLAG_RQCP0) == RESET);
+	BoradVol = VOL_NONE;
+	
+	Led_Reset();
+}
+
+/********************************
+电量显示函数
+功能：
+	BOOT_INIT状态下电量显示
+	
+参数：
+	无
+	
+返回值：
+	无
+**************************************/
+void Voldisplay(float vol)
+{
+	if(vol > VOLTAGE3)
+	{
+		LED1 = 1;
+		LED2 = 1;
+		LED3 = 1;
+		LED4 = 1;
+	}
+	else if(vol <= VOLTAGE3 && vol > VOLTAGE2)
+	{
+		LED1 = 1;
+		LED2 = 1;
+		LED3 = 1;
+		LED4 = 0;
+	}
+	else if(vol <= VOLTAGE2 && vol > VOLTAGE1)
+	{
+		LED1 = 1;
+		LED2 = 1;
+		LED3 = 0;
+		LED4 = 0;
+	}
+	else if(vol <= VOLTAGE1 && vol > VOLTAGE0)
+	{
+
+		LED1 = 1;
+		LED2 = 0;
+		LED3 = 0;
+		LED4 = 0;
+	}
+	else
+	{
+		LED1 = 0;
+		LED2 = 0;
+		LED3 = 0;
+		LED4 = 0;
+	}
 }
 
 /********************************
@@ -1584,174 +2017,21 @@ void Control_Handler(void)
 {
 	if(pwr_status == BOOT_RUN)
 	{
-		if(rxbuf.Rxflag == 1)
-		{
-			DEBUGMSG("Control_Handler dev_cmd = %d", rxbuf.cmd.dev_cmd);
-			switch(rxbuf.cmd.dev_cmd)
-			{
-				case HEARTBEAT:
-					HeartBeatHandler(rxbuf.cmd.dev_id);
-					break;
-				case LEFT_TURN:
-				case RIGHT_TURN:
-				case ORTATE_STOP:
-					OrtateMotorControl(&rxbuf.cmd);
-//					QuitPair();
-					break;
-				case START_MOVE:
-				case RETREAT:
-				case STOP_MOVE:
-					MotorMoveControlHandler(&rxbuf.cmd);
-//					QuitPair();
-					break;
-				case SPEED_CNTR:
-					SpeedControlHandler(&rxbuf.cmd);
-//					QuitPair();
-					break;
-				case MODE_CHANGE:
-					ModeChangeHandler(&rxbuf.cmd);
-//					QuitPair();
-					break;
-				case PAIR_ACK:
-					PairAckHandler(&rxbuf.cmd);
-					break;
-				case CONNECT:
-					ConnectHandler(&rxbuf.cmd);
-					break;
-				case CONNECT_ACK:
-					break;
-				default:
-					break;
-			}
-
-			rxbuf.Rxflag = 0;
-		}
-
-#if 0		
-		if(BigCurrenttime > MAX_BIGCURRENTTIME)
-		{
-			BoardSt = MOTOR_FAULT;
-//			BigCurrenttime = 0;
-		}
-#endif
-		if(MotorMoveTime > MAX_MOVE_TIME)
-		{
-			MotorMoveStop();
-			MotorMoveTime = 0;
-		}
-
-		if(BeepIndTime > BEEPINDMAXTIME)
-		{
-			BeepIndTime = 0;
-			BEEP = 0;
-		}
-
-		if(OrateMoveTime > MAX_MOVE_TIME)
-		{
-			Ortate_Motor_Brate();
-//			OrtateMotorLock = 0;
-			OrateMoveTime = 0;
-			OrtateMotorTime = 0;
-			ControlDevice = MAIN_BOARD;
-		}
-
-		if((BoardSt == ST_PAIR || BoardSt == ST_CANCELPAIR) && (SystemTime - pairtime > PAIR_MAX_TIME))
-		{
-			BoardSt = NORMAL;
-			pairtime = 0;
-			cpflag = 0;
-		}
-	
-		if(OrtateMotorTime > ORTATEMOTORTIME)
-		{
-			Ortate_Motor_Brate();
-			OrateMoveTime = 0;
-			OrtateMotorLock = 1;
-			OrtateMotorTime = 0;
-		}
-		KeyShakeCheck();
-		KeyHandler();
-		ConnectCheck();
-		ADCHandler();
-		FaultHandler();
+		BootRunHandler();
 	}
 	else if(pwr_status == BOOT_INIT)
 	{
-//		StartTime = 0;
-		RGBBLUE = 1;
-		RGBGREEN = 1;
-		RGBRED = 1;
-		if(StartTime <= STARTTIME)
-		{
-			LED1 = 1;
-			LED2 = 0;
-			LED3 = 0;
-			LED4 = 0;
-		}
-		else if(StartTime > STARTTIME && StartTime <= (STARTTIME * 2))
-		{
-			LED1 = 0;
-			LED2 = 1;
-			LED3 = 0;
-			LED4 = 0;
-		}
-		else if(StartTime > (STARTTIME * 2) && StartTime <= (STARTTIME * 3))
-		{
-			LED1 = 0;
-			LED2 = 0;
-			LED3 = 1;
-			LED4 = 0;
-		}
-		else if(StartTime > (STARTTIME * 3) && StartTime <= (STARTTIME * 4))
-		{
-			LED1 = 0;
-			LED2 = 0;
-			LED3 = 0;
-			LED4 = 1;
-		}
-		else
-		{
-			LED1 = 0;
-			LED2 = 0;
-			LED3 = 0;
-			LED4 = 0;
-			
-			pwr_status = BOOT_RUN;
-			StartTime = 0;
-			CAN_Send_Msg(NULL, 0, MAIN_BOARD,START_BOOT);
-		}
+		KeyShakeCheck();
+		KeyHandler();
+		BootInitHandler();
 	}
 	else
 	{
-		SystemTime = 0;
-		TIM2->CCER &=  0xffef;
-		MoveMotorStatus = MOTORMOVESTOP;
-		Ortate_Motor_Brate();
-		BoardSt = NORMAL;
-		warnlv = NOWARN;
-		NowVol = 0;
-//		NowCur = 0;
-		NowTemp = 0;
-		NowWp = 0;
-		Speed = SPEED0;
-		cpflag = 0;
-		beepwarnontime = 0;
-		yelflashtimes = 0;
-		redflashtimes = 0;
-		MotorMoveTime = 0;
-		OrtateMotorLock = 0;
-		OrtateMotorTime = 0;
-		OrateMoveTime = 0;
-		BeepIndTime = 0;
-		memset(&condev,0,sizeof(condev));
-		BEEP = 0;
-		DeviceMode = INCH_MODE;
-		CAN_Send_Msg(NULL, 0, MAIN_BOARD, CLOSE_BOOT);
-		while(CAN_GetFlagStatus(CAN1, CAN_FLAG_RQCP0) == RESET);
-		BoradVol = VOL_NONE;
 		
+		KeyShakeCheck();
+		KeyHandler();
 		Led_Reset();
-		PWR_EnterSTOPMode(PWR_Regulator_LowPower, PWR_STOPEntry_WFI);
+//		PWR_EnterSTOPMode(PWR_Regulator_LowPower, PWR_STOPEntry_WFI);
 	}
 }
 
