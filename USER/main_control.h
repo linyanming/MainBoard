@@ -56,7 +56,7 @@
 
 #define LIMIT_CURRENT_SPD SPEED4
 
-#define ORTATEMOTORTIME 2000 //一次最多转动两秒
+#define ORTATEMOTORTIME 5000 //一次最多转动5秒
 
 #define STARTTIME 500 //开机流水灯间隔
 
@@ -74,6 +74,8 @@
 #define SPEED_ADD   0x64 //速度加一档
 #define SPEED_SUB   0x65 //速度减一档
 #define SPEED_ONMAX 0x66 //速度切换，第一次收到时切换到最大档，第二次收到时切换到原始档位
+
+#define CUR_NOISE 2.7  //电流噪声2.7A
 
 typedef struct
 {

@@ -161,6 +161,10 @@ void WarningHandler(void)
 				beepwarntime = 1;
 			}
 		}
+		else
+		{
+			BEEP = 0;
+		}
 
 		if(yelflashtimes > 0)
 		{
@@ -441,10 +445,13 @@ void FaultHandler(void)
 			break;
 		case REEDKEY_FAULT:
 		case MOTOR_FAULT:
-			Ortate_Motor_Brate();
-			MotorMoveStop();
-			DeviceMode = INCH_MODE;
-			warnlv = MOTORWARN;
+			if(warnlv < MOTORWARN)
+			{
+				Ortate_Motor_Brate();
+				MotorMoveStop();
+				DeviceMode = INCH_MODE;
+				warnlv = MOTORWARN;
+			}
 			break;
 		case CONNECT_FAULT:
 			if(warnlv < CONNECTWARN)
@@ -658,7 +665,7 @@ void WorkPowerHandler(float cur,float vol)
 	if(fabs(wp - NowWp) >= WPCHANGEVAL)
 	{
 		NowWp = wp;
-		if(wp > 600)    //功率大于600W报警
+		if(wp > 600 && wp < 720)    //功率大于600W报警
 		{
 			if(WpTime == 0)
 			{
@@ -676,6 +683,19 @@ void WorkPowerHandler(float cur,float vol)
 					}
 
 				}
+			}
+		}
+		else if(wp >= 720)
+		{
+			if(BoardSt <= WORKPOWER_FAULT)
+			{
+				BoardSt = WORKPOWER_FAULT;
+				WpTime = 0;
+				if(Speed != SPEED0)
+				{
+					beepwarnontime = 60000;
+				}
+			
 			}
 		}
 		else
@@ -843,13 +863,20 @@ void ADCHandler(void)
 	float temp;
 	if(SystemTime % 1000 == 0)  //1S处理一次
 	{
-		DEBUGMSG("PB3 = %d pb4 = %d",KEY_PAIR,KEY_PWR);
+//		DEBUGMSG("PB3 = %d pb4 = %d",KEY_PAIR,KEY_PWR);
+		DEBUGMSG("BOARD_ST %d", BoardSt);
+
 		val = Get_ADC_Value();
 //		printf("val = %d %d %d\r\n",val[0],val[1],val[2]);
 		cur = val[0] * 3.3 / 4096 / 20 * 1000 / 2; //工作电流
 		vol = val[1] * 3.3 / 4096 * 10;  //工作电压
 		temp = val[2] * 3.3 / 4096 / (3.3 - (val[2] * 3.3 / 4096)) * 5.1; //这里算出来的是热敏电阻阻值 单位：千欧
 //		printf("vol = %f cur = %f temp = %f\r\n",vol,cur,temp);
+		cur = (cur - CUR_NOISE);
+		if(cur < 0)
+		{
+			cur = 0;
+		}
 		VoltageHandler(vol);
 	//	CurrentHandler(cur);
 		WorkPowerHandler(cur,vol);
@@ -1193,6 +1220,14 @@ void ReflashHeartBeat(u8 devid)
 	{
 		condev.dev[i].heart_time = 1;
 	}
+	else
+	{
+		if(condev.dev[i].status == DEVLOSE)
+		{
+			condev.dev[i].status = DEVCONN;
+			condev.dev[i].heart_time = 1;
+		}
+	}
 }
 
 /********************************
@@ -1482,30 +1517,33 @@ void SpeedControlHandler(CommandData* dev)
 				}
 				else
 				{
-					if(dev->data[0] == SPEED_ADD)
+					if(DeviceMode == LINK_MODE)
 					{
-						if(Speed < SPEED7)
+						if(dev->data[0] == SPEED_ADD)
 						{
-							Speed++;
+							if(Speed < SPEED7)
+							{
+								Speed++;
+							}
 						}
-					}
-					else if(dev->data[0] == SPEED_SUB)
-					{
-						if(Speed > SPEED0)
+						else if(dev->data[0] == SPEED_SUB)
 						{
-							Speed--;
+							if(Speed > SPEED0)
+							{
+								Speed--;
+							}
 						}
-					}
-					else if(dev->data[0] == SPEED_ONMAX)
-					{
-						if(Speed < SPEED7)
+						else if(dev->data[0] == SPEED_ONMAX)
 						{
-							Speed_temp = Speed;
-							Speed = SPEED7;
-						}
-						else
-						{
-							Speed = Speed_temp;
+							if(Speed < SPEED7)
+							{
+								Speed_temp = Speed;
+								Speed = SPEED7;
+							}
+							else
+							{
+								Speed = Speed_temp;
+							}
 						}
 					}
 				}

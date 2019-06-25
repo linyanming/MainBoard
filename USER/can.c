@@ -125,7 +125,7 @@ u8 CAN_Send_Msg(u8 *msg,u8 len,Device_ID dev_id,Device_CMD dev_cmd)
 		default:
 			break;
 	}
-	DEBUGMSG("CAN_Send_Msg");
+	DEBUGMSG("CAN_Send_Msg %d %d",dev_id,dev_cmd);
 	return 0;
 }
 
