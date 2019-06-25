@@ -285,6 +285,10 @@ void WarningHandler(void)
 				redflashtimes = redtemptimes;
 			}
 		}
+		else
+		{
+			BEEP = 0;
+		}
 	}
 
 	if(BoardSt == CONNECT_FAULT || BoardSt == MOTOR_FAULT || BoardSt == REEDKEY_FAULT)
