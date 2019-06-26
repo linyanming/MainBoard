@@ -401,7 +401,6 @@ void FaultHandler(void)
 				{
 					beepwarnontime = 60000;
 				}
-				MotorMoveSpeedSet();
 				warnlv = WORKPOWERWARN;
 			}
 			break;
@@ -499,7 +498,7 @@ void FaultHandler(void)
 //			redtemptimes = redflashtimes;
 			beepwarnontime = 0;
 			TempTime = 0;
-//			WpTime = 0;
+			WpTime = 0;
 			warnlv = NOWARN;
 		default:
 			break;
@@ -672,14 +671,13 @@ void WorkPowerHandler(float cur,float vol)
 		NowWp = wp;
 		if(wp > 600 && wp < 720)    //功率大于600W报警
 		{
-			if(WpTime == 0 && BoardSt < WORKPOWER_FAULT)
+			if(WpTime == 0)
 			{
 				WpTime = 1;
 			}
-//			printf("%d\r\n",WpTime);
+
 			if(WpTime > 30000)
 			{
-				WpTime = 0;
 				if(BoardSt <= WORKPOWER_FAULT)
 				{
 					BoardSt = WORKPOWER_FAULT;
@@ -877,13 +875,12 @@ void ADCHandler(void)
 		cur = val[0] * 3.3 / 4096 / 20 * 1000 / 2; //工作电流
 		vol = val[1] * 3.3 / 4096 * 10;  //工作电压
 		temp = val[2] * 3.3 / 4096 / (3.3 - (val[2] * 3.3 / 4096)) * 5.1; //这里算出来的是热敏电阻阻值 单位：千欧
-		
-		cur = (cur - CUR_NOISE) * CUR_BIAS;
+//		printf("vol = %f cur = %f temp = %f\r\n",vol,cur,temp);
+		cur = (cur - CUR_NOISE);
 		if(cur < 0)
 		{
 			cur = 0;
 		}
-//		printf("vol = %f cur = %f temp = %f\r\n",vol,cur,temp);
 		VoltageHandler(vol);
 	//	CurrentHandler(cur);
 		WorkPowerHandler(cur,vol);

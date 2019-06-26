@@ -56,7 +56,7 @@
 
 #define LIMIT_CURRENT_SPD SPEED4
 
-#define ORTATEMOTORTIME 7000 //一次最多转动7秒
+#define ORTATEMOTORTIME 5000 //一次最多转动5秒
 
 #define STARTTIME 500 //开机流水灯间隔
 
@@ -76,7 +76,7 @@
 #define SPEED_ONMAX 0x66 //速度切换，第一次收到时切换到最大档，第二次收到时切换到原始档位
 
 #define CUR_NOISE 2.7  //电流噪声2.7A
-#define CUR_BIAS  0.8  //电流误差参数
+
 typedef struct
 {
 	u8 dev_id;     //控制设备id
