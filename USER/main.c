@@ -76,6 +76,8 @@ int main(void)
 	CAN_Config();
 //	IWDG_Init();
 	ADC_Config();
+	TIM4_Config();
+
 //	TIM3_Init();
 	Key_Init();
 	DeviceStatusInit();

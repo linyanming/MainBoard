@@ -21,6 +21,8 @@ __IO u16 MotorMoveTime;   //前进时间
 __IO u16 OrateMoveTime;  //转向电机时间
 u8 Speed;      //前进电机速度
 u8 Speed_temp; //速度切换缓存变量
+u16 target_speed; //目标速度
+u16 now_speed;    //当前速度
 __IO u32 BeepIndTime;  //蜂鸣器指示电机状态切换时间
 
 u8 cpflag; //允许取消配对变量
@@ -353,7 +355,8 @@ void FaultHandler(void)
 				warnlv = CURRENT60WARN;
 				if(BigCurrenttime == 0)
 				{
-					BigCurrenttime = 1;
+					
+BigCurrenttime = 1;
 				}
 			}
 			break;
@@ -366,7 +369,8 @@ void FaultHandler(void)
 				warnlv = CURRENT70WARN;
 				if(BigCurrenttime == 0)
 				{
-					BigCurrenttime = 1;
+					
+BigCurrenttime = 1;
 				}
 			}
 			break;
@@ -459,7 +463,8 @@ void FaultHandler(void)
 			}
 			break;
 		case CONNECT_FAULT:
-			if(warnlv < CONNECTWARN)
+			if(warnlv < CONNECTWARN)
+
 			{
 				Ortate_Motor_Brate();
 				MotorMoveStop();
@@ -816,7 +821,8 @@ void OrtateFaultCheck(void)
 	{
 		if(BoardSt == ORTATE_FAULT && beepwarnontime == 0)
 		{
-			BoardSt = NORMAL;
+			
+BoardSt = NORMAL;
 		}
 	}
 }
@@ -945,6 +951,8 @@ void DeviceStatusInit(void)
 	OrtateMotorLock = 0;
 	OrtateMotorTime = 0;
 	Speed = SPEED0;
+	now_speed = 0;
+	target_speed = 0;
 	Speed_temp = Speed;
 	NowTemp = 0;
 //	NowCur = 0;
@@ -1002,6 +1010,8 @@ void MotorMoveStop(void)
 {
 	u8 st;
 	st = (DeviceMode << 1);
+	now_speed = 0;
+	TIM_SetCompare2(TIM2, now_speed);
 	TIM2->CCER &=  0xffef;
 	MoveMotorStatus = MOTORMOVESTOP;
 	CAN_Send_Msg(&st, 1, MAIN_BOARD, MOTOR_CHANGE);
@@ -1019,6 +1029,88 @@ void MotorMoveStop(void)
 	无
 **************************************/
 #if 1
+void MotorMoveSpeedSet(void)
+{
+	switch(Speed)
+	{
+		case SPEED0:
+			target_speed = SPEED0_VAL;
+			break;
+		case SPEED1:
+			if(BoardSt == WORKPOWER_FAULT || BoardSt == TEMP_FAULT)
+			{
+				target_speed = SPEED1_VAL/2;
+			}
+			else
+			{
+				target_speed = SPEED1_VAL;
+			}
+			break;
+		case SPEED2:
+			if(BoardSt == WORKPOWER_FAULT || BoardSt == TEMP_FAULT)
+			{
+				target_speed = SPEED2_VAL/2;
+			}
+			else
+			{
+				target_speed = SPEED2_VAL;
+			}
+			break;
+		case SPEED3:
+			if(BoardSt == WORKPOWER_FAULT || BoardSt == TEMP_FAULT)
+			{
+				target_speed = SPEED3_VAL/2;
+			}
+			else
+			{
+				target_speed = SPEED3_VAL;
+			}
+			break;
+		case SPEED4:
+			if(BoardSt == WORKPOWER_FAULT || BoardSt == TEMP_FAULT)
+			{
+				target_speed = SPEED4_VAL/2;
+			}
+			else
+			{
+				target_speed = SPEED4_VAL;
+			}
+			break;
+		case SPEED5:
+			if(BoardSt == WORKPOWER_FAULT || BoardSt == TEMP_FAULT)
+			{
+				target_speed = SPEED5_VAL/2;
+			}
+			else
+			{
+				target_speed = SPEED5_VAL;
+			}
+			break;
+		case SPEED6:
+			if(BoardSt == WORKPOWER_FAULT || BoardSt == TEMP_FAULT)
+			{
+				target_speed = SPEED6_VAL/2;
+			}
+			else
+			{
+				target_speed = SPEED6_VAL;
+			}
+			break;
+		case SPEED7:
+			if(BoardSt == WORKPOWER_FAULT || BoardSt == TEMP_FAULT)
+			{
+				target_speed = SPEED7_VAL/2;
+			}
+			else
+			{
+				target_speed = SPEED7_VAL;
+			}
+			break;
+		default:
+			break;
+	}
+}
+#else
 void MotorMoveSpeedSet(void)
 {
 	u8 spd;
@@ -1107,45 +1199,25 @@ void MotorMoveSpeedSet(void)
 			break;
 	}
 }
-#else
-void MotorMoveSpeedSet(void)
-{
-	u8 spd;
-	spd = Speed;
-	
-	switch(spd)
-	{
-		case SPEED0:
-
-			TIM_SetCompare2(TIM2, SPEED0_VAL);
-			break;
-		case SPEED1:
-			TIM_SetCompare2(TIM2, SPEED1_VAL);
-			break;
-		case SPEED2:
-			TIM_SetCompare2(TIM2, SPEED2_VAL);
-			break;
-		case SPEED3:
-			TIM_SetCompare2(TIM2, SPEED3_VAL);
-			break;
-		case SPEED4:
-			TIM_SetCompare2(TIM2, SPEED4_VAL);
-			break;
-		case SPEED5:
-			TIM_SetCompare2(TIM2, SPEED5_VAL);
-			break;
-		case SPEED6:
-			TIM_SetCompare2(TIM2, SPEED6_VAL);
-			break;
-		case SPEED7:
-			TIM_SetCompare2(TIM2, SPEED7_VAL);
-			break;
-		default:
-			break;
-	}
-}
 #endif
 
+void SpeedChange(void)
+{
+	if(MoveMotorStatus == MOTORMOVERUN)
+	{
+		if(now_speed < target_speed)
+		{
+//			printf("now_speed = %d target_speed = %d\r\n",now_speed,target_speed);
+			now_speed += SPEED_SWITCH_BASE;
+			TIM_SetCompare2(TIM2, now_speed);
+		}
+		else if(now_speed > target_speed)
+		{
+			now_speed = target_speed;
+			TIM_SetCompare2(TIM2, target_speed);
+		}
+	}
+}
 /********************************
 心跳计数
 功能：
@@ -1316,7 +1388,8 @@ void ModeChangeHandler(CommandData* dev)
 				MotorMoveStop();
 			}
 			
-			if(BoardSt == NORMAL)
+			if(BoardSt == NORMAL)
+
 			{
 				BeepIndTime = 1;
 				BEEP = 1;
@@ -1366,7 +1439,8 @@ void OrtateMotorControl(CommandData* dev)
 						}
 						else if(OrtateMotorStatus == ORTATE_STATUS_STOP)
 						{
-							if(BoardSt == NORMAL)
+							if(BoardSt == NORMAL)
+
 							{
 								BeepIndTime = 1;
 								BEEP = 1;
@@ -1374,7 +1448,8 @@ void OrtateMotorControl(CommandData* dev)
 							Ortate_Motor_Left();
 							OrateMoveTime = 1;
 							OrtateMotorTime = 1;
-						}
+						}
+
 					}
 //					ControlDevice = dev->dev_id;
 //				}
@@ -1398,7 +1473,8 @@ void OrtateMotorControl(CommandData* dev)
 						}
 						else if(OrtateMotorStatus == ORTATE_STATUS_STOP)
 						{
-							if(BoardSt == NORMAL)
+							if(BoardSt == NORMAL)
+
 							{
 								BeepIndTime = 1;
 								BEEP = 1;
@@ -1407,14 +1483,16 @@ void OrtateMotorControl(CommandData* dev)
 							Ortate_Motor_Right();
 							OrateMoveTime = 1;
 							OrtateMotorTime = 1;
-						}
+						}
+
 					}
 //					ControlDevice = dev->dev_id;
 //				}
 			}
 			else
 			{	
-/*				if(BoardSt == NORMAL)
+/*				if(BoardSt == NORMAL)
+
 				{
 					BeepIndTime = 1;
 					BEEP = 1;
@@ -1460,21 +1538,23 @@ void MotorMoveControlHandler(CommandData* dev)
 					}
 					else
 					{
-						if(BoardSt == NORMAL)
+						if(BoardSt == NORMAL)
+
 						{
 							BeepIndTime = 1;
 							BEEP = 1;
 						}
 
-						Speed = dev->data[0];
-						MotorMoveSpeedSet();
+//						Speed = dev->data[0];
+//						MotorMoveSpeedSet();
 						MotorMoveStart();
 						MotorMoveTime = 1;
 					}
 				}
 				else if(dev->dev_cmd == STOP_MOVE)
 				{
-	/*				if(BoardSt == NORMAL)
+	/*				if(BoardSt == NORMAL)
+
 					{
 						BeepIndTime = 1;
 						BEEP = 1;
@@ -1511,8 +1591,10 @@ void SpeedControlHandler(CommandData* dev)
 		if(BoardSt != ST_PAIR && BoardSt != ST_CANCELPAIR)
 		{
 			if(Speed != dev->data[0])
-			{
-				if(BoardSt == NORMAL)
+			
+{
+				if(BoardSt == NORMAL)
+
 				{
 					BeepIndTime = 1;
 					BEEP = 1;
@@ -1628,7 +1710,8 @@ void KeyHandler(void)
 						if(BoardSt == NORMAL && OrtateMotorStatus == ORTATE_STATUS_STOP && MoveMotorStatus == MOTORMOVESTOP)
 						{
 							CAN_Send_Msg(NULL, 0, MAIN_BOARD, PAIRING);
-							BoardSt = ST_PAIR;
+						
+	BoardSt = ST_PAIR;
 							pairtime = SystemTime;
 						}
 
@@ -1656,7 +1739,8 @@ void KeyHandler(void)
 			KeyFlag = 0;
 			keypairtime = 0;
 			KPStatus = KEYNONE;
-		}
+		}
+
 	}
 
 	if(KPWRStatus == KPWRPRESS)
@@ -1786,6 +1870,11 @@ void BootRunHandler(void)
 		}
 
 		rxbuf.Rxflag = 0;
+	}
+//	SpeedChange();
+	if(BoardSt == WORKPOWER_FAULT && now_speed == 0)
+	{
+		beepwarnontime = 0;
 	}
 
 	if(MotorMoveTime > MAX_MOVE_TIME)
@@ -1977,6 +2066,8 @@ void CloseBootHandler(void)
 	NowTemp = 0;
 	NowWp = 0;
 	Speed = SPEED0;
+	now_speed = 0;
+	target_speed = 0;
 	cpflag = 0;
 	beepwarnontime = 0;
 	yelflashtimes = 0;

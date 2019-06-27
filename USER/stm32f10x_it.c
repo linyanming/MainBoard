@@ -237,6 +237,16 @@ void EXTI4_IRQHandler(void)
 }
 
 
+void TIM4_IRQHandler(void)
+{
+	if(TIM_GetITStatus(TIM4, TIM_IT_Update) != RESET)
+	{
+		SpeedChange();
+		TIM_ClearITPendingBit(TIM4, TIM_IT_Update);
+	}
+}
+
+
 void USB_LP_CAN1_RX0_IRQHandler(void)
 {
 	if(pwr_status == BOOT_RUN)

@@ -5,6 +5,28 @@
 
 u8 OrtateMotorStatus = ORTATE_STATUS_STOP;
 
+void TIM4_Config(void)
+{
+	TIM_TimeBaseInitTypeDef TIM_BaseStr;
+	NVIC_InitTypeDef NVIC_Str;
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE);
+
+	TIM_BaseStr.TIM_ClockDivision = TIM_CKD_DIV4;
+	TIM_BaseStr.TIM_CounterMode = TIM_CounterMode_Up;
+	TIM_BaseStr.TIM_Period = (40-1);
+	TIM_BaseStr.TIM_Prescaler = 18000;
+	TIM_TimeBaseInit(TIM4, &TIM_BaseStr);
+
+	NVIC_Str.NVIC_IRQChannel = TIM4_IRQn;
+	NVIC_Str.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Str.NVIC_IRQChannelPreemptionPriority = 2;
+	NVIC_Str.NVIC_IRQChannelSubPriority = 3;
+	NVIC_Init(&NVIC_Str);
+	
+	TIM_ITConfig(TIM4, TIM_IT_Update, ENABLE);
+	TIM_Cmd(TIM4, ENABLE);
+}
+
 /********************************
 转向电机PWM波初始化
 功能：

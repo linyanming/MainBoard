@@ -174,6 +174,7 @@ void CloseBootCheck(void);
 void CloseBootHandler(void);
 void Voldisplay(float vol);
 void Volreflash(void);
+void SpeedChange(void);
 
 #endif
 

@@ -20,7 +20,9 @@
 #define ORTATE_STATUS_RIGHT 2
 #define ORTATE_STATUS_STOP 1
 
-#define SPEED_BASE 650
+#define SPEED_BASE 550
+#define SPEED_OFFSET 1300
+#define SPEED_SWITCH_BASE 50
 
 #define SPEED0 0
 #define SPEED1 1
@@ -31,7 +33,16 @@
 #define SPEED6 6
 #define SPEED7 7
 
+#define SPEED0_VAL 0
+#define SPEED1_VAL SPEED_OFFSET
+#define SPEED2_VAL (SPEED_OFFSET+SPEED_BASE)
+#define SPEED3_VAL (SPEED_OFFSET+SPEED_BASE*2)
+#define SPEED4_VAL (SPEED_OFFSET+SPEED_BASE*3)
+#define SPEED5_VAL (SPEED_OFFSET+SPEED_BASE*4)
+#define SPEED6_VAL (SPEED_OFFSET+SPEED_BASE*5)
+#define SPEED7_VAL (SPEED_OFFSET+SPEED_BASE*6)
 
+#if 0
 #define SPEED0_VAL (SPEED0*SPEED_BASE)
 #define SPEED1_VAL (SPEED1*SPEED_BASE)
 #define SPEED2_VAL (SPEED2*SPEED_BASE)
@@ -40,7 +51,7 @@
 #define SPEED5_VAL (SPEED5*SPEED_BASE)
 #define SPEED6_VAL (SPEED6*SPEED_BASE)
 #define SPEED7_VAL (SPEED7*SPEED_BASE)
-
+#endif
 
 extern u8 OrtateMotorStatus;
 
@@ -51,6 +62,7 @@ void Ortate_Motor_Right(void);
 void Ortate_Motor_Coast(void);
 void Ortate_Motor_Brate(void);
 
+void TIM4_Config(void);
 
 #endif
 
