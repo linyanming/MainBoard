@@ -435,6 +435,8 @@ BigCurrenttime = 1;
 				yeltemptimes = yelflashtimes;
 				redtemptimes = redflashtimes;
 				beepwarnontime = 10000;
+				Ortate_Motor_Brate();
+				MotorMoveStop();
 				warnlv = ORTATEWARN;
 			}
 			break;
@@ -672,7 +674,7 @@ void WorkPowerHandler(float cur,float vol)
 		}
 	}
 
-	if(BoardSt == WORKPOWER_FAULT && cur > 40 && (now_speed == target_speed))
+	if(BoardSt == WORKPOWER_FAULT && cur > 30 && (now_speed == target_speed))
 	{
 		MotorMoveStop();
 	}
@@ -719,7 +721,7 @@ void WorkPowerHandler(float cur,float vol)
 			if(BoardSt == WORKPOWER_FAULT && beepwarnontime == 0)
 			{
 				BoardSt = NORMAL;
-				MotorMoveSpeedSet();
+//				MotorMoveSpeedSet();
 			}
 		}
 	}
@@ -878,7 +880,7 @@ void OrtateFaultCheck(void)
 		if(BoardSt == ORTATE_FAULT && beepwarnontime == 0)
 		{
 			
-BoardSt = NORMAL;
+			BoardSt = NORMAL;
 		}
 	}
 }
@@ -1652,15 +1654,7 @@ void SpeedControlHandler(CommandData* dev)
 		if(BoardSt != ST_PAIR && BoardSt != ST_CANCELPAIR)
 		{
 			if(Speed != dev->data[0])
-			
-{
-				if(BoardSt == NORMAL)
-
-				{
-					BeepIndTime = 1;
-					BEEP = 1;
-				}
-				
+			{
 				if(dev->data[0] <= SPEED7)
 				{
 					Speed = dev->data[0];
@@ -1675,12 +1669,22 @@ void SpeedControlHandler(CommandData* dev)
 							{
 								Speed++;
 							}
+							else
+							{
+								ReflashHeartBeat(dev->dev_id);
+								return;
+							}
 						}
 						else if(dev->data[0] == SPEED_SUB)
 						{
 							if(Speed > SPEED0)
 							{
 								Speed--;
+							}
+							else
+							{
+								ReflashHeartBeat(dev->dev_id);
+								return;
 							}
 						}
 						else if(dev->data[0] == SPEED_ONMAX)
@@ -1696,6 +1700,12 @@ void SpeedControlHandler(CommandData* dev)
 							}
 						}
 					}
+				}
+				
+				if(BoardSt == NORMAL)
+				{
+					BeepIndTime = 1;
+					BEEP = 1;
 				}
 				MotorMoveSpeedSet();
 			}

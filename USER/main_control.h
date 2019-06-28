@@ -16,8 +16,8 @@
 
 #define STOP_TIME  2000  //长按关机时间  这里是2秒
 
-#define MAX_CON_DEVNUM 16  //最大设备连接个数
-#define MAX_HEART_TIME 4500 //心跳超时时间 4.5s
+#define MAX_CON_DEVNUM 4  //最大设备连接个数
+#define MAX_HEART_TIME 6000 //心跳超时时间 4.5s
 
 #define MOTORMOVERUN 1
 #define MOTORMOVESTOP 0
@@ -58,7 +58,7 @@
 
 #define ORTATEMOTORTIME 7000 //一次最多转动7秒
 
-#define STARTTIME 500 //开机流水灯间隔
+#define STARTTIME 250 //开机流水灯间隔
 
 #define VOLDISTOUCH 300 //按键电量显示
 #define VOLDISTIME  2000 //电量显示时间
@@ -175,6 +175,8 @@ void CloseBootHandler(void);
 void Voldisplay(float vol);
 void Volreflash(void);
 void SpeedChange(void);
+void TempCheck(void);
+void VolCheck(void);
 
 #endif
 
