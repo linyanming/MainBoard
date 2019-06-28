@@ -671,6 +671,11 @@ void WorkPowerHandler(float cur,float vol)
 			}
 		}
 	}
+
+	if(BoardSt == WORKPOWER_FAULT && cur > 40 && (now_speed == target_speed))
+	{
+		MotorMoveStop();
+	}
 	
 	if(fabs(wp - NowWp) >= WPCHANGEVAL)
 	{
@@ -714,6 +719,7 @@ void WorkPowerHandler(float cur,float vol)
 			if(BoardSt == WORKPOWER_FAULT && beepwarnontime == 0)
 			{
 				BoardSt = NORMAL;
+				MotorMoveSpeedSet();
 			}
 		}
 	}
@@ -770,6 +776,7 @@ void TempHandler(float temp)
 	if(fabs(temp - NowTemp) >= TEMPCHANGEVAL)
 	{
 		NowTemp = temp;
+/*
 		if(temp <= TEMP80)
 		{
 			if(TempTime == 0)
@@ -791,6 +798,55 @@ void TempHandler(float temp)
 			if(BoardSt == TEMP_FAULT)
 			{
 				BoardSt = NORMAL;
+			}
+		}
+*/
+	}
+}
+
+void TempCheck(void)
+{
+	if(NowTemp <= TEMP80)
+	{
+		if(TempTime == 0)
+		{
+			TempTime = 1;
+		}
+	
+		if(TempTime > 30000)
+		{
+			if(BoardSt < TEMP_FAULT)
+			{
+				BoardSt = TEMP_FAULT;
+			}
+		}
+	
+	}
+	else
+	{
+		if(BoardSt == TEMP_FAULT)
+		{
+			BoardSt = NORMAL;
+		}
+	}
+}
+
+void VolCheck(void)
+{
+	if(NowVol > VOLTAGE4)
+	{
+		if(NowVol >= VOLTAGEMAX)
+		{
+			if(BoardSt < HIGH_VOL_FAULT)
+			{
+				BoardSt = HIGH_VOL_FAULT;
+			}
+		}
+		else
+		{
+			if(BoardSt <= HIGH_VOL_FAULT)
+			{
+				BoardSt = VOL_FAULT;
 			}
 		}
 	}
@@ -896,6 +952,8 @@ void ADCHandler(void)
 
 		TempHandler(temp);
 	}
+	TempCheck();
+	VolCheck();
 	OrtateFaultCheck();
 	ReedkeyFaultCheck();
 }
@@ -1011,6 +1069,8 @@ void MotorMoveStop(void)
 	u8 st;
 	st = (DeviceMode << 1);
 	now_speed = 0;
+	target_speed = 0;
+	Speed = 0;
 	TIM_SetCompare2(TIM2, now_speed);
 	TIM2->CCER &=  0xffef;
 	MoveMotorStatus = MOTORMOVESTOP;
@@ -1277,6 +1337,7 @@ void ConnectCheck(void)
 				BoardSt = CONNECT_FAULT;
 				condev.connum--;
 			}
+			condev.dev[i].heart_time = 1;
 		}
 	}
 }
